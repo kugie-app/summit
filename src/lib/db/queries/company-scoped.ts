@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { SQL, and, eq } from 'drizzle-orm';
-import { PgTableWithColumns } from 'drizzle-orm/pg-core';
+import { PgTableWithColumns, PgSelectQueryBuilder } from 'drizzle-orm/pg-core';
 
 /**
  * Utility for ensuring all database queries are scoped to the user's company
@@ -27,18 +27,22 @@ export async function getCompanyScopedRecords<T extends PgTableWithColumns<any>>
   offset?: number;
   orderBy?: SQL<unknown>;
 }) {
+  // Build all conditions first
+  let conditions: SQL<unknown> | undefined = eq(table.companyId as any, companyId);
+  
+  if (!withSoftDeleted && 'softDelete' in table) {
+    conditions = and(conditions, eq(table.softDelete as any, false));
+  }
+  
+  if (where) {
+    conditions = and(conditions, where);
+  }
+
   let query = db
     .select()
-    .from(table)
-    .where(eq(table.companyId as any, companyId));
-
-  if (!withSoftDeleted && 'softDelete' in table) {
-    query = query.where(eq(table.softDelete as any, false));
-  }
-
-  if (where) {
-    query = query.where(where);
-  }
+    .from(table as any)
+    .where(conditions)
+    .$dynamic();
 
   if (orderBy) {
     query = query.orderBy(orderBy);
@@ -71,11 +75,12 @@ export async function getCompanyScopedRecord<T extends PgTableWithColumns<any>>(
 }) {
   let query = db
     .select()
-    .from(table)
+    .from(table as any)
     .where(and(
       eq(table.companyId as any, companyId),
       eq(table.id as any, id)
-    ));
+    ))
+    .$dynamic();
 
   if (!withSoftDeleted && 'softDelete' in table) {
     query = query.where(eq(table.softDelete as any, false));

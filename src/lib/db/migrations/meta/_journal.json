@@ -8,6 +8,13 @@
       "when": 1744561508378,
       "tag": "0000_strong_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1744562084921,
+      "tag": "0001_quick_thunderbird",
+      "breakpoints": true
     }
   ]
 }

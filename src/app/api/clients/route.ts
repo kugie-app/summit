@@ -3,10 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
 import { db } from '@/lib/db';
 import { clients } from '@/lib/db/schema';
-import { asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { clientSchema } from '@/lib/validations/client';
-import { getCompanyScopedRecords, insertCompanyScopedRecord } from '@/lib/db/queries/company-scoped';
-
+import { ZodError } from 'zod';
 // GET /api/clients - Get all clients for the company
 export async function GET(request: NextRequest) {
   try {
@@ -27,10 +26,9 @@ export async function GET(request: NextRequest) {
 
     // Count total records for pagination
     const countResult = await db
-      .select({ count: db.fn.count() })
+      .select({ count: sql`COUNT(*)` })
       .from(clients)
-      .where(eq(clients.companyId, companyId))
-      .where(eq(clients.softDelete, false));
+      .where(and(eq(clients.companyId, companyId), eq(clients.softDelete, false)));
     
     const total = Number(countResult[0].count);
 
@@ -38,9 +36,8 @@ export async function GET(request: NextRequest) {
     const clientList = await db
       .select()
       .from(clients)
-      .where(eq(clients.companyId, companyId))
-      .where(eq(clients.softDelete, false))
-      .orderBy(order === 'asc' ? asc(clients[sort as keyof typeof clients]) : desc(clients[sort as keyof typeof clients]))
+      .where(and(eq(clients.companyId, companyId), eq(clients.softDelete, false)))
+      .orderBy(order === 'asc' ? asc(clients.name) : desc(clients.name))
       .limit(limit)
       .offset(offset);
 
@@ -81,9 +78,7 @@ export async function POST(request: NextRequest) {
       const existingClient = await db
         .select({ id: clients.id })
         .from(clients)
-        .where(eq(clients.companyId, companyId))
-        .where(eq(clients.email, validatedData.email))
-        .where(eq(clients.softDelete, false));
+        .where(and(eq(clients.companyId, companyId), eq(clients.email, validatedData.email), eq(clients.softDelete, false)));
 
       if (existingClient.length > 0) {
         return NextResponse.json(
@@ -112,7 +107,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating client:', error);
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return NextResponse.json(
         { message: 'Validation error', errors: error.errors },
         { status: 400 }
