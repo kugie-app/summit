@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { SQL, and, eq } from 'drizzle-orm';
-import { PgTableWithColumns, PgSelectQueryBuilder } from 'drizzle-orm/pg-core';
+import { PgTableWithColumns } from 'drizzle-orm/pg-core';
 
 /**
  * Utility for ensuring all database queries are scoped to the user's company

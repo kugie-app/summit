@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    const sort = searchParams.get('sort') || 'name';
     const order = searchParams.get('order') || 'asc';
     const offset = (page - 1) * limit;
 

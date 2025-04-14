@@ -1,81 +1,100 @@
+import React from 'react';
 import {
   Body,
   Button,
   Container,
   Head,
   Heading,
-  Hr,
   Html,
   Img,
   Link,
   Preview,
   Section,
   Text,
+  Hr,
+  Column,
+  Row,
 } from '@react-email/components';
 import { format } from 'date-fns';
 
 interface InvoiceEmailProps {
-  invoiceNumber: string;
-  clientName: string;
-  issueDate: string;
-  dueDate: string;
-  total: string;
-  status: string;
+  invoice: {
+    id: number;
+    invoiceNumber: string;
+    status: string;
+    issueDate: string | Date;
+    dueDate: string | Date;
+    total: number | string;
+    client: {
+      name: string;
+      email?: string;
+    };
+    company?: {
+      name: string;
+    };
+  };
+  downloadUrl: string;
   viewUrl: string;
   paymentUrl?: string;
-  companyName: string;
 }
 
-export function InvoiceEmail({
-  invoiceNumber,
-  clientName,
-  issueDate,
-  dueDate,
-  total,
-  status,
+const formatDate = (date: string | Date) => {
+  return format(new Date(date), 'PP');
+};
+
+const formatCurrency = (amount: number | string) => {
+  return `$${Number(amount).toFixed(2)}`;
+};
+
+export const InvoiceEmail: React.FC<InvoiceEmailProps> = ({
+  invoice,
+  downloadUrl,
   viewUrl,
   paymentUrl,
-  companyName = 'Your Company',
-}: InvoiceEmailProps) {
-  const formattedTotal = `$${parseFloat(total).toFixed(2)}`;
-  const formattedIssueDate = format(new Date(issueDate), 'MMMM dd, yyyy');
-  const formattedDueDate = format(new Date(dueDate), 'MMMM dd, yyyy');
-  
+}) => {
+  const previewText = `Invoice ${invoice.invoiceNumber} for ${formatCurrency(invoice.total)}`;
+
   return (
     <Html>
       <Head />
-      <Preview>Invoice {invoiceNumber} from {companyName}</Preview>
+      <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={header}>{companyName}</Heading>
+          <Section style={logoContainer}>
+            <Img
+              src="https://via.placeholder.com/150x50?text=Your+Logo"
+              width="150"
+              height="50"
+              alt="Company Logo"
+            />
+          </Section>
           
-          <Section style={section}>
-            <Heading as="h2" style={subheader}>
-              Invoice {invoiceNumber}
-            </Heading>
-            
-            <Text style={paragraph}>Dear {clientName},</Text>
+          <Section style={content}>
+            <Heading style={heading}>Invoice {invoice.invoiceNumber}</Heading>
             
             <Text style={paragraph}>
-              Please find attached your invoice {invoiceNumber}, issued on {formattedIssueDate} and due on {formattedDueDate}.
+              Dear {invoice.client.name},
             </Text>
             
-            <Section style={infoBox}>
-              <Text style={infoText}>
-                <strong>Invoice Number:</strong> {invoiceNumber}
-              </Text>
-              <Text style={infoText}>
-                <strong>Issue Date:</strong> {formattedIssueDate}
-              </Text>
-              <Text style={infoText}>
-                <strong>Due Date:</strong> {formattedDueDate}
-              </Text>
-              <Text style={infoText}>
-                <strong>Total Amount:</strong> {formattedTotal}
-              </Text>
-              <Text style={infoText}>
-                <strong>Status:</strong> {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Text>
+            <Text style={paragraph}>
+              We hope this email finds you well. Please find attached your invoice 
+              {' '}<strong>{invoice.invoiceNumber}</strong> for the amount of 
+              {' '}<strong>{formatCurrency(invoice.total)}</strong>.
+            </Text>
+            
+            <Section style={details}>
+              <Row>
+                <Column>Issue Date:</Column>
+                <Column align="right">{formatDate(invoice.issueDate)}</Column>
+              </Row>
+              <Row>
+                <Column>Due Date:</Column>
+                <Column align="right">{formatDate(invoice.dueDate)}</Column>
+              </Row>
+              <Row style={totalRow}>
+                <Column>Total Amount:</Column>
+                <Column align="right">{formatCurrency(invoice.total)}</Column>
+              </Row>
             </Section>
             
             <Section style={buttonContainer}>
@@ -83,40 +102,36 @@ export function InvoiceEmail({
                 View Invoice
               </Button>
               
-              {paymentUrl && status !== 'paid' && (
-                <Button style={{ ...button, backgroundColor: '#16a34a' }} href={paymentUrl}>
+              <Button style={{...button, backgroundColor: '#34D399'}} href={downloadUrl}>
+                Download PDF
+              </Button>
+              
+              {paymentUrl && (
+                <Button style={{...button, backgroundColor: '#3B82F6'}} href={paymentUrl}>
                   Pay Now
                 </Button>
               )}
             </Section>
             
+            <Hr style={hr} />
+            
             <Text style={paragraph}>
-              You can view the full invoice details by clicking the button above or following this link: <Link href={viewUrl}>{viewUrl}</Link>
+              If you have any questions regarding this invoice, please don&apos;t hesitate to contact us.
             </Text>
             
-            {status !== 'paid' && (
-              <Text style={paragraph}>
-                Please ensure payment is made by the due date. If you have any questions about this invoice, please don't hesitate to contact us.
-              </Text>
-            )}
+            <Text style={paragraph}>
+              Thank you for your business!
+            </Text>
             
-            {status === 'paid' && (
-              <Text style={paragraph}>
-                Thank you for your payment. This invoice has been marked as paid.
-              </Text>
-            )}
+            <Text style={footer}>
+              {invoice.company?.name || 'Your Company'} - {new Date().getFullYear()}
+            </Text>
           </Section>
-          
-          <Hr style={hr} />
-          
-          <Text style={footer}>
-            &copy; {new Date().getFullYear()} {companyName}. All rights reserved.
-          </Text>
         </Container>
       </Body>
     </Html>
   );
-}
+};
 
 // Styles
 const main = {
@@ -126,85 +141,73 @@ const main = {
 };
 
 const container = {
+  backgroundColor: '#ffffff',
   margin: '0 auto',
-  padding: '20px 0 48px',
+  padding: '20px 0',
+  borderRadius: '4px',
   maxWidth: '600px',
 };
 
-const header = {
+const logoContainer = {
+  padding: '20px',
+};
+
+const content = {
+  padding: '0 20px',
+};
+
+const heading = {
   fontSize: '24px',
-  lineHeight: '1.3',
-  fontWeight: '700',
-  color: '#484848',
-  padding: '17px 0 0',
-};
-
-const subheader = {
-  fontSize: '20px',
-  lineHeight: '1.3',
-  fontWeight: '700',
-  color: '#484848',
-};
-
-const section = {
-  backgroundColor: '#ffffff',
-  padding: '24px',
-  border: '1px solid #e6ebf1',
-  borderRadius: '6px',
-  marginTop: '16px',
+  fontWeight: 'bold',
+  marginBottom: '15px',
 };
 
 const paragraph = {
   fontSize: '16px',
-  lineHeight: '1.4',
-  color: '#484848',
-  marginTop: '16px',
-  marginBottom: '16px',
+  lineHeight: '26px',
+  marginBottom: '15px',
 };
 
-const infoBox = {
+const details = {
+  padding: '15px',
   backgroundColor: '#f9fafb',
   borderRadius: '4px',
-  padding: '16px',
-  marginTop: '16px',
-  marginBottom: '16px',
+  marginBottom: '20px',
 };
 
-const infoText = {
-  fontSize: '14px',
-  lineHeight: '1.4',
-  color: '#484848',
-  margin: '4px 0',
+const totalRow = {
+  fontWeight: 'bold',
+  borderTop: '1px solid #e5e7eb',
+  paddingTop: '8px',
+  marginTop: '8px',
 };
 
 const buttonContainer = {
-  display: 'flex',
-  justifyContent: 'center',
-  gap: '12px',
-  marginTop: '24px',
-  marginBottom: '24px',
+  textAlign: 'center' as const,
+  margin: '25px 0',
 };
 
 const button = {
-  backgroundColor: '#1e40af',
+  backgroundColor: '#10B981',
   borderRadius: '4px',
-  color: '#fff',
-  fontSize: '14px',
-  fontWeight: '600',
+  color: '#ffffff',
+  fontSize: '16px',
   textDecoration: 'none',
-  textAlign: 'center' as const,
   padding: '10px 20px',
+  margin: '0 8px',
+  display: 'inline-block',
 };
 
 const hr = {
-  borderColor: '#e6ebf1',
-  margin: '20px 0',
+  borderColor: '#e5e7eb',
+  margin: '25px 0',
 };
 
 const footer = {
-  fontSize: '12px',
-  lineHeight: '1.5',
-  color: '#9ca3af',
+  fontSize: '14px',
+  color: '#6b7280',
+  marginTop: '25px',
   textAlign: 'center' as const,
-  marginTop: '16px',
-}; 
+};
+
+export default InvoiceEmail; 

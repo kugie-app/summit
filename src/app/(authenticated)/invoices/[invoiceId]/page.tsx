@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { ArrowLeft, Download, Send, Pencil, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Send, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table,
@@ -142,9 +142,38 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
   const handleDownloadPdf = async () => {
     if (!invoice) return;
     
-    // Instead of showing a toast, navigate to the PDF print/download page
-    const { invoiceId } = await params;
-    window.open(`/invoices/${invoiceId}/print`, '_blank');
+    try {
+      const { invoiceId } = await params;
+      
+      // Directly fetch the PDF from the API
+      const response = await fetch(`/api/invoices/${invoiceId}/pdf`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+      
+      // Create a blob from the PDF data
+      const blob = await response.blob();
+      
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${invoice.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
+    }
   };
   
   const handleSendEmail = async () => {
@@ -168,9 +197,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         const error = await response.json();
         throw new Error(error.message || 'Failed to send email');
       }
-      
-      const result = await response.json();
-      
+
       toast.success('Email sent successfully');
       
       // Refresh invoice data if status was updated
@@ -204,7 +231,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
     return (
       <div className="container mx-auto py-6">
         <div className="flex justify-center items-center h-64">
-          <p>Invoice not found or you don't have permission to view it.</p>
+          <p>Invoice not found or you don&apos;t have permission to view it.</p>
         </div>
       </div>
     );

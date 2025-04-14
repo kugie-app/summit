@@ -252,10 +252,11 @@ export function InvoiceForm({ initialData, onSuccess, onCancel }: InvoiceFormPro
         return {
           id: item.id, // Pass through ID if it exists
           description: item.description,
-          // quantity must be a number according to latest error
+          // Keep quantity as a number according to API validation
           quantity: Number(item.quantity),
-          // unitPrice and amount as strings
+          // unitPrice must be a string according to API expectations
           unitPrice: item.unitPrice.toString(),
+          // amount must be a string according to API expectations
           amount: item.amount.toString(),
         };
       });
@@ -265,7 +266,14 @@ export function InvoiceForm({ initialData, onSuccess, onCancel }: InvoiceFormPro
         items: formattedItems,
       };
       
+      // Debug logged to help diagnose any further validation issues
       console.log("Submitting data:", JSON.stringify(dataToSubmit, null, 2));
+      console.log("Item types:", formattedItems.map(item => ({
+        description: typeof item.description,
+        quantity: typeof item.quantity,
+        unitPrice: typeof item.unitPrice,
+        amount: typeof item.amount
+      })));
       
       const url = isEditing 
         ? `/api/invoices/${initialData!.id}` 
@@ -487,7 +495,7 @@ export function InvoiceForm({ initialData, onSuccess, onCancel }: InvoiceFormPro
 
             {items.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
-                No items added yet. Click "Add Item" to start.
+                No items added yet. Click &quot;Add Item&quot; to start.
               </div>
             ) : (
               <div className="border rounded-md divide-y">

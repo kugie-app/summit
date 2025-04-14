@@ -5,15 +5,16 @@ import { db } from '@/lib/db';
 import { clients } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { clientSchema, clientParamsSchema } from '@/lib/validations/client';
+import { ZodError } from 'zod';
 
 // GET /api/clients/[clientId] - Get a specific client
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
     // Validate clientId parameter
-    const { clientId } = clientParamsSchema.parse(params);
+    const { clientId } = await params;
     const id = parseInt(clientId);
 
     // Check authorization
@@ -45,7 +46,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching client:', error);
 
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return NextResponse.json(
         { message: 'Invalid client ID' },
         { status: 400 }
@@ -62,11 +63,11 @@ export async function GET(
 // PUT /api/clients/[clientId] - Update a client
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
     // Validate clientId parameter
-    const { clientId } = clientParamsSchema.parse(params);
+    const { clientId } = await params;
     const id = parseInt(clientId);
 
     // Check authorization
@@ -146,7 +147,7 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating client:', error);
 
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return NextResponse.json(
         { message: 'Validation error', errors: error.errors },
         { status: 400 }
@@ -163,11 +164,11 @@ export async function PUT(
 // DELETE /api/clients/[clientId] - Soft delete a client
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
     // Validate clientId parameter
-    const { clientId } = clientParamsSchema.parse(params);
+    const { clientId } = await params;
     const id = parseInt(clientId);
 
     // Check authorization
@@ -214,7 +215,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting client:', error);
 
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return NextResponse.json(
         { message: 'Invalid client ID' },
         { status: 400 }

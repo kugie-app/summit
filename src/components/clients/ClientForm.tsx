@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ClientFormValues, clientSchema } from '@/lib/validations/client';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -27,6 +25,15 @@ interface Client {
   paymentTerms: number;
 }
 
+// Explicitly define the form values type with required paymentTerms
+type ClientFormValues = {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  paymentTerms: number;
+};
+
 interface ClientFormProps {
   initialData?: Partial<Client>;
   onSuccess?: (client: any) => void;
@@ -39,13 +46,12 @@ export function ClientForm({ initialData, onSuccess, onCancel }: ClientFormProps
   const isEditing = !!initialData?.id;
 
   const form = useForm<ClientFormValues>({
-    resolver: zodResolver(clientSchema),
     defaultValues: {
       name: initialData?.name || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       address: initialData?.address || '',
-      paymentTerms: initialData?.paymentTerms || 30,
+      paymentTerms: initialData?.paymentTerms ?? 30,
     },
   });
 
