@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ClientsTable } from '@/components/clients/ClientsTable';
 import { ClientDialog } from '@/components/clients/ClientDialog';
@@ -29,7 +29,8 @@ interface ClientsResponse {
   };
 }
 
-export default function ClientsPage() {
+// Client component that uses useSearchParams
+function ClientsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -199,5 +200,14 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function ClientsPage() {
+  return (
+    <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Loading...</div>}>
+      <ClientsPageContent />
+    </Suspense>
   );
 } 

@@ -4,16 +4,15 @@ import { authOptions } from '@/lib/auth/options';
 import { db } from '@/lib/db';
 import { invoices, invoiceItems, clients, companies } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { invoiceParamsSchema } from '@/lib/validations/invoice';
-import { ZodError } from 'zod';
+import { InvoicePDF } from '@/components/pdf/InvoicePDF';
+import { renderToBuffer } from '@/lib/pdf';
 
-// GET /api/invoices/[invoiceId]/pdf - Redirect to a client-side PDF generation page
+// GET /api/invoices/[invoiceId]/pdf - Generate PDF for a specific invoice
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ invoiceId: string }> }
 ) {
   try {
-    // Validate invoiceId parameter
     const { invoiceId } = await params;
     const id = parseInt(invoiceId);
 
@@ -25,37 +24,58 @@ export async function GET(
 
     const companyId = parseInt(session.user.companyId);
 
-    // Check if invoice exists and belongs to user's company
-    const invoiceCheck = await db
-      .select({ id: invoices.id })
+    // Get invoice with client and company data
+    const [invoiceData] = await db
+      .select({
+        invoice: invoices,
+        client: clients,
+        company: companies,
+      })
       .from(invoices)
+      .leftJoin(clients, eq(invoices.clientId, clients.id))
+      .leftJoin(companies, eq(invoices.companyId, companies.id))
       .where(
         and(
-          eq(invoices.id, id),
+          eq(invoices.id, parseInt(invoiceId)),
           eq(invoices.companyId, companyId),
           eq(invoices.softDelete, false)
         )
       );
 
-    if (!invoiceCheck.length) {
+    if (!invoiceData) {
       return NextResponse.json({ message: 'Invoice not found' }, { status: 404 });
     }
 
-    // Instead of trying to render PDFs on the server, redirect to a client-side PDF viewer
-    // This avoids issues with server-side JSX rendering and provides a better user experience
-    return NextResponse.redirect(new URL(`/invoices/${invoiceId}/print`, request.url));
+    // Get invoice items
+    const items = await db
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, id));
+
+    // Format data for PDF generation
+    const invoice = {
+      ...invoiceData.invoice,
+      client: invoiceData.client,
+      company: invoiceData.company,
+      items,
+    };
+
+    // Generate PDF
+    const pdfBuffer = await renderToBuffer(InvoicePDF, { invoice });
+
+    // Set response headers for PDF download
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/pdf');
+    headers.set('Content-Disposition', `inline; filename="invoice-${invoiceId}.pdf"`);
+
+    return new NextResponse(pdfBuffer, {
+      status: 200,
+      headers,
+    });
   } catch (error) {
-    console.error('Error processing PDF request:', error);
-
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { message: 'Invalid invoice ID' },
-        { status: 400 }
-      );
-    }
-
+    console.error('Error generating invoice PDF:', error);
     return NextResponse.json(
-      { message: 'Failed to process PDF request' },
+      { message: 'Failed to generate PDF' },
       { status: 500 }
     );
   }

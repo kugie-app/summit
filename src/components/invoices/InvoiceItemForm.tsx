@@ -63,7 +63,7 @@ export function InvoiceItemForm({
 
   return (
     <Form {...form}>
-      <div className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <FormField
             control={form.control}
@@ -168,7 +168,6 @@ export function InvoiceItemForm({
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            onClick={form.handleSubmit(handleSubmit)}
           >
             {isSubmitting
               ? (isEditing ? 'Updating...' : 'Adding...')
@@ -176,7 +175,7 @@ export function InvoiceItemForm({
             }
           </Button>
         </div>
-      </div>
+      </form>
     </Form>
   );
 } 

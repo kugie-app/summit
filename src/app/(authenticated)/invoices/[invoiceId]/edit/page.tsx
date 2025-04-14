@@ -11,14 +11,12 @@ export default function EditInvoicePage({ params }: { params: Promise<{ invoiceI
   const router = useRouter();
   const [invoice, setInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [invoiceId, setInvoiceId] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchInvoice = async () => {
       setLoading(true);
       try {
         const { invoiceId } = await params;
-        setInvoiceId(invoiceId);
         const response = await fetch(`/api/invoices/${invoiceId}`);
         
         if (!response.ok) {
@@ -43,7 +41,7 @@ export default function EditInvoicePage({ params }: { params: Promise<{ invoiceI
     router.push(`/invoices/${invoiceId}`);
   };
   
-  const handleSuccess = async(updatedInvoice: any) => {
+  const handleSuccess = async() => {
     toast.success('Invoice updated successfully');
     const { invoiceId } = await params;
     router.push(`/invoices/${invoiceId}`);
@@ -63,7 +61,7 @@ export default function EditInvoicePage({ params }: { params: Promise<{ invoiceI
     return (
       <div className="container mx-auto py-6">
         <div className="flex justify-center items-center h-64">
-          <p>Invoice not found or you don't have permission to edit it.</p>
+          <p>Invoice not found or you don&apos;t have permission to edit it.</p>
         </div>
       </div>
     );

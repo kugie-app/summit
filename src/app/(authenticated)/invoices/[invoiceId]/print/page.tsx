@@ -99,7 +99,7 @@ export default function InvoicePrintPage({ params }: { params: Promise<{ invoice
     return (
       <div className="container mx-auto py-6">
         <div className="flex justify-center items-center h-64">
-          <p>Invoice not found or you don't have permission to view it.</p>
+          <p>Invoice not found or you don&apos;t have permission to view it.</p>
         </div>
       </div>
     );

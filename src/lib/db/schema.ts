@@ -7,7 +7,8 @@ import {
   integer,
   pgEnum, uniqueIndex,
   decimal,
-  date
+  date,
+  varchar
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -27,7 +28,16 @@ export const invoiceStatusEnum = pgEnum('invoice_status', [
   'sent',
   'paid',
   'overdue',
-  'cancelled'
+  'cancelled',
+]);
+
+// Define quote status enum
+export const quoteStatusEnum = pgEnum('quote_status', [
+  'draft',
+  'sent',
+  'accepted',
+  'rejected',
+  'expired',
 ]);
 
 // Define companies table
@@ -106,11 +116,126 @@ export const invoiceItems = pgTable('invoice_items', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Define relationships
+// Define quotes table
+export const quotes = pgTable('quotes', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id),
+  clientId: integer('client_id').notNull().references(() => clients.id),
+  quoteNumber: text('quote_number').notNull(),
+  status: quoteStatusEnum('status').default('draft').notNull(),
+  issueDate: date('issue_date').notNull(),
+  expiryDate: date('expiry_date').notNull(),
+  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
+  tax: decimal('tax', { precision: 10, scale: 2 }).default('0'),
+  total: decimal('total', { precision: 10, scale: 2 }).notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  acceptedAt: timestamp('accepted_at'),
+  softDelete: boolean('soft_delete').default(false).notNull(),
+});
+
+// Define quote items table
+export const quoteItems = pgTable('quote_items', {
+  id: serial('id').primaryKey(),
+  quoteId: integer('quote_id').notNull().references(() => quotes.id),
+  description: text('description').notNull(),
+  quantity: decimal('quantity', { precision: 10, scale: 2 }).notNull(),
+  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Expense Categories Table
+export const expenseCategories = pgTable('expense_categories', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id')
+    .notNull()
+    .references(() => companies.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  softDelete: boolean('soft_delete').default(false).notNull(),
+});
+
+// Expenses Table
+export const expenses = pgTable('expenses', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id')
+    .notNull()
+    .references(() => companies.id),
+  categoryId: integer('category_id')
+    .references(() => expenseCategories.id),
+  vendor: varchar('vendor', { length: 255 }),
+  description: text('description'),
+  amount: varchar('amount', { length: 20 }).notNull(),
+  currency: varchar('currency', { length: 10 }).default('USD').notNull(),
+  expenseDate: date('expense_date').notNull(),
+  receiptUrl: text('receipt_url'),
+  status: varchar('status', { length: 20 })
+    .default('pending')
+    .notNull()
+    .$type<'pending' | 'approved' | 'rejected'>(),
+  recurring: varchar('recurring', { length: 20 })
+    .default('none')
+    .notNull()
+    .$type<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>(),
+  nextDueDate: date('next_due_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  softDelete: boolean('soft_delete').default(false).notNull(),
+});
+
+// Income Categories Table
+export const incomeCategories = pgTable('income_categories', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id')
+    .notNull()
+    .references(() => companies.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  softDelete: boolean('soft_delete').default(false).notNull(),
+});
+
+// Income Table
+export const income = pgTable('income', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id')
+    .notNull()
+    .references(() => companies.id),
+  categoryId: integer('category_id')
+    .references(() => incomeCategories.id),
+  clientId: integer('client_id')
+    .references(() => clients.id),
+  invoiceId: integer('invoice_id')
+    .references(() => invoices.id),
+  source: varchar('source', { length: 255 }),
+  description: text('description'),
+  amount: varchar('amount', { length: 20 }).notNull(),
+  currency: varchar('currency', { length: 10 }).default('USD').notNull(),
+  incomeDate: date('income_date').notNull(),
+  recurring: varchar('recurring', { length: 20 })
+    .default('none')
+    .notNull()
+    .$type<'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'>(),
+  nextDueDate: date('next_due_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  softDelete: boolean('soft_delete').default(false).notNull(),
+});
+
+// Company relationships
 export const companiesRelations = relations(companies, ({ many }) => ({
   users: many(users),
   clients: many(clients),
   invoices: many(invoices),
+  quotes: many(quotes),
+  expenseCategories: many(expenseCategories),
+  expenses: many(expenses),
+  incomeCategories: many(incomeCategories),
+  income: many(income),
 }));
 
 export const usersRelations = relations(users, ({ one }) => ({
@@ -126,6 +251,7 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
     references: [companies.id],
   }),
   invoices: many(invoices),
+  quotes: many(quotes),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one, many }) => ({
@@ -144,5 +270,75 @@ export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
   invoice: one(invoices, {
     fields: [invoiceItems.invoiceId],
     references: [invoices.id],
+  }),
+}));
+
+// Expense Categories relationships
+export const expenseCategoriesRelations = relations(expenseCategories, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [expenseCategories.companyId],
+    references: [companies.id],
+  }),
+  expenses: many(expenses),
+}));
+
+// Expense relationships
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  company: one(companies, {
+    fields: [expenses.companyId],
+    references: [companies.id],
+  }),
+  category: one(expenseCategories, {
+    fields: [expenses.categoryId],
+    references: [expenseCategories.id],
+  }),
+}));
+
+// Income Categories relationships
+export const incomeCategoriesRelations = relations(incomeCategories, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [incomeCategories.companyId],
+    references: [companies.id],
+  }),
+  incomeItems: many(income),
+}));
+
+// Income relationships
+export const incomeRelations = relations(income, ({ one }) => ({
+  company: one(companies, {
+    fields: [income.companyId],
+    references: [companies.id],
+  }),
+  category: one(incomeCategories, {
+    fields: [income.categoryId],
+    references: [incomeCategories.id],
+  }),
+  client: one(clients, {
+    fields: [income.clientId],
+    references: [clients.id],
+  }),
+  invoice: one(invoices, {
+    fields: [income.invoiceId],
+    references: [invoices.id],
+  }),
+}));
+
+// Quote relationships
+export const quotesRelations = relations(quotes, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [quotes.companyId],
+    references: [companies.id],
+  }),
+  client: one(clients, {
+    fields: [quotes.clientId],
+    references: [clients.id],
+  }),
+  items: many(quoteItems),
+}));
+
+export const quoteItemsRelations = relations(quoteItems, ({ one }) => ({
+  quote: one(quotes, {
+    fields: [quoteItems.quoteId],
+    references: [quotes.id],
   }),
 }));
