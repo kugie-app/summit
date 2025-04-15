@@ -4,6 +4,7 @@ declare module 'next-auth' {
   interface User {
     role?: string;
     companyId?: string;
+    permissions?: Record<string, boolean>;
   }
   
   interface Session {
@@ -14,6 +15,7 @@ declare module 'next-auth' {
       image?: string | null;
       role: string;
       companyId?: string;
+      permissions?: Record<string, boolean>;
     }
   }
 }
@@ -23,5 +25,6 @@ declare module 'next-auth/jwt' {
     id: string;
     role?: string;
     companyId?: string;
+    permissions?: Record<string, boolean>;
   }
 } 

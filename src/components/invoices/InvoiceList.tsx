@@ -121,9 +121,9 @@ export function InvoiceList({ className }: InvoiceListProps) {
   };
 
   const formatCurrency = (amount: string) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('id-ID', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'IDR',
     }).format(parseFloat(amount));
   };
 

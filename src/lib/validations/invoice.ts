@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { recurringOptionEnum } from './expense';
 
 // Invoice item schema
 export const invoiceItemSchema = z.object({
@@ -21,7 +22,10 @@ export const invoiceSchema = z.object({
   subtotal: z.coerce.number().min(0, 'Subtotal cannot be negative'),
   tax: z.coerce.number().min(0, 'Tax cannot be negative').default(0),
   total: z.coerce.number().min(0, 'Total cannot be negative'),
+  currency: z.string().default('IDR'),
   notes: z.string().optional(),
+  recurring: recurringOptionEnum.default('none'),
+  nextDueDate: z.coerce.date().optional().nullable(),
   items: z.array(invoiceItemSchema).min(1, 'At least one item is required'),
 });
 

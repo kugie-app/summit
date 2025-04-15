@@ -5,6 +5,7 @@ import { compare } from 'bcrypt';
 import { db } from '@/lib/db';
 import { and, eq } from 'drizzle-orm';
 import { users } from '@/lib/db/schema';
+import { getUserPermissions } from './permissions/utils';
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -53,12 +54,16 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Get user permissions based on role
+        const permissions = getUserPermissions(user.role);
+
         return {
           id: user.id.toString(),
           email: user.email,
           name: user.name,
           role: user.role,
           companyId: user.companyId?.toString(),
+          permissions,
         };
       },
     }),
@@ -69,6 +74,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.companyId = user.companyId;
+        token.permissions = user.permissions;
       }
       return token;
     },
@@ -77,6 +83,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.companyId = token.companyId as string | undefined;
+        session.user.permissions = token.permissions as Record<string, boolean> | undefined;
       }
       return session;
     },

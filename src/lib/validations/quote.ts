@@ -21,6 +21,7 @@ export const quoteSchema = z.object({
   subtotal: z.coerce.number().min(0, 'Subtotal cannot be negative'),
   tax: z.coerce.number().min(0, 'Tax cannot be negative').default(0),
   total: z.coerce.number().min(0, 'Total cannot be negative'),
+  currency: z.string().default('IDR'),
   notes: z.string().optional(),
   items: z.array(quoteItemSchema).min(1, 'At least one item is required'),
 });
