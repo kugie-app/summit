@@ -6,7 +6,6 @@ import { invoices, clients } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { createXenditInvoice } from '@/lib/xendit';
 import { z } from 'zod';
-import { parse } from 'date-fns';
 
 // Parameter validation schema
 const paramsSchema = z.object({
@@ -18,7 +17,7 @@ const paramsSchema = z.object({
 // POST /api/invoices/[invoiceId]/create-xendit-invoice - Create Xendit payment link
 export async function POST(
   request: NextRequest,
-  { params }: { params: { invoiceId: string } }
+  { params }: { params: Promise<{ invoiceId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -28,7 +27,8 @@ export async function POST(
     }
     
     // Validate parameters
-    const paramValidation = paramsSchema.safeParse(params);
+    const { invoiceId } = await params;
+    const paramValidation = paramsSchema.safeParse({ invoiceId });
     if (!paramValidation.success) {
       return NextResponse.json(
         { message: 'Invalid invoice ID', errors: paramValidation.error.format() },
@@ -36,7 +36,6 @@ export async function POST(
       );
     }
     
-    const invoiceId = parseInt(params.invoiceId);
     const companyId = parseInt(session.user.companyId);
     
     // Fetch the invoice and related client
@@ -49,7 +48,7 @@ export async function POST(
       .leftJoin(clients, eq(invoices.clientId, clients.id))
       .where(
         and(
-          eq(invoices.id, invoiceId),
+          eq(invoices.id, parseInt(invoiceId)),
           eq(invoices.companyId, companyId),
           eq(invoices.softDelete, false)
         )
@@ -95,7 +94,7 @@ export async function POST(
         xenditInvoiceUrl: xenditInvoice.invoiceUrl,
         updatedAt: new Date(),
       })
-      .where(eq(invoices.id, invoiceId))
+      .where(eq(invoices.id, parseInt(invoiceId)))
       .returning();
     
     return NextResponse.json({

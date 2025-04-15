@@ -89,14 +89,14 @@ export async function GET(request: NextRequest) {
     const clientOutstanding: Record<string, { clientId: number; clientName: string; amount: number }> = {};
     
     outstandingInvoices.forEach(invoice => {
-      if (!clientOutstanding[invoice.clientId]) {
-        clientOutstanding[invoice.clientId] = {
+      if (!clientOutstanding[invoice.clientId as number]) {
+        clientOutstanding[invoice.clientId as number] = {
           clientId: invoice.clientId as number,
           clientName: invoice.clientName as string,
           amount: 0
         };
       }
-      clientOutstanding[invoice.clientId].amount += invoice.total;
+      clientOutstanding[invoice.clientId as number].amount += invoice.total;
     });
     
     const topClients = Object.values(clientOutstanding)

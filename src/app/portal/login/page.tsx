@@ -8,17 +8,22 @@ export const metadata: Metadata = {
   description: 'Login to your client portal to view invoices and more',
 };
 
+interface PageProps {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}
+
 export default async function LoginPage({
   searchParams,
-}: {
-  searchParams: { callbackUrl?: string };
-}) {
+}: PageProps) {
+  // Resolve the searchParams promise
+  const resolvedSearchParams = await searchParams;
+
   // Check if already logged in
   const session = await getClientSession();
   
   if (session) {
     // Redirect to the callback URL if provided, otherwise to the dashboard
-    const callbackUrl = searchParams.callbackUrl || '/portal/dashboard';
+    const callbackUrl = resolvedSearchParams.callbackUrl || '/portal/dashboard';
     redirect(callbackUrl);
   }
 

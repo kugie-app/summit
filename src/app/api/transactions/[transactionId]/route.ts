@@ -3,14 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
 import { db } from '@/lib/db';
 import { transactions, accounts, expenses, income, invoices } from '@/lib/db/schema';
-import { and, eq, like, desc, asc, between, count, sql, not, isNull } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { transactionSchema, transactionParamsSchema } from '@/lib/validations/transaction';
 import { format } from 'date-fns';
 
 // GET /api/transactions/[transactionId] - Get transaction details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { transactionId: string } }
+  { params }: { params: Promise<{ transactionId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,9 +20,8 @@ export async function GET(
     }
     
     // Validate transaction ID
-    const paramsValidation = transactionParamsSchema.safeParse({
-      transactionId: params.transactionId,
-    });
+    const { transactionId } = await params;
+    const paramsValidation = transactionParamsSchema.safeParse({ transactionId });
     
     if (!paramsValidation.success) {
       return NextResponse.json(
@@ -31,7 +30,6 @@ export async function GET(
       );
     }
     
-    const { transactionId } = paramsValidation.data;
     const companyId = parseInt(session.user.companyId);
     
     // Fetch transaction with account details
@@ -120,7 +118,7 @@ export async function GET(
 // PUT /api/transactions/[transactionId] - Update transaction
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { transactionId: string } }
+  { params }: { params: Promise<{ transactionId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -130,9 +128,8 @@ export async function PUT(
     }
     
     // Validate transaction ID
-    const paramsValidation = transactionParamsSchema.safeParse({
-      transactionId: params.transactionId,
-    });
+    const { transactionId } = await params;
+    const paramsValidation = transactionParamsSchema.safeParse({ transactionId });
     
     if (!paramsValidation.success) {
       return NextResponse.json(
@@ -152,7 +149,6 @@ export async function PUT(
       );
     }
     
-    const { transactionId } = paramsValidation.data;
     const companyId = parseInt(session.user.companyId);
     
     const {
@@ -279,7 +275,7 @@ export async function PUT(
 // DELETE /api/transactions/[transactionId] - Delete transaction
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { transactionId: string } }
+  { params }: { params: Promise<{ transactionId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -289,9 +285,8 @@ export async function DELETE(
     }
     
     // Validate transaction ID
-    const paramsValidation = transactionParamsSchema.safeParse({
-      transactionId: params.transactionId,
-    });
+    const { transactionId } = await params;
+    const paramsValidation = transactionParamsSchema.safeParse({ transactionId });
     
     if (!paramsValidation.success) {
       return NextResponse.json(
@@ -300,7 +295,6 @@ export async function DELETE(
       );
     }
     
-    const { transactionId } = paramsValidation.data;
     const companyId = parseInt(session.user.companyId);
     
     // Check if transaction exists and belongs to company
