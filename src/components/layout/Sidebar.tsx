@@ -11,6 +11,7 @@ import {
   LineChart,
   Settings,
   Building,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ const navItems = [
   { label: 'Quotes', icon: FileText, href: '/quotes' },
   { label: 'Expenses', icon: Receipt, href: '/expenses' },
   { label: 'Income', icon: CreditCard, href: '/income' },
+  { label: 'Recurring', icon: RefreshCw, href: '/recurring-transactions' },
   { label: 'Reports', icon: LineChart, href: '/reports' },
   { label: 'Company', icon: Building, href: '/company' },
   { label: 'Settings', icon: Settings, href: '/settings' },

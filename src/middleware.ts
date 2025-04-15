@@ -6,6 +6,10 @@ const publicPaths = [
   '/auth/signin',
   '/auth/signup',
   '/api/auth',
+  // Client portal public paths
+  '/portal/login',
+  '/portal/verify',
+  '/api/portal/auth',
 ];
 
 export async function middleware(request: NextRequest) {
@@ -18,6 +22,32 @@ export async function middleware(request: NextRequest) {
   
   // Special case for the root path - redirect to dashboard if authenticated
   if (pathname === '/') {
+    return NextResponse.next();
+  }
+  
+  // For client portal routes
+  if (pathname.startsWith('/portal')) {
+    // Check client JWT cookie
+    const clientToken = request.cookies.get('client_token')?.value;
+    
+    if (!clientToken) {
+      const url = new URL('/portal/login', request.url);
+      url.searchParams.set('callbackUrl', encodeURI(request.url));
+      return NextResponse.redirect(url);
+    }
+    
+    // Allow client to continue to portal route
+    return NextResponse.next();
+  }
+  
+  // For API portal routes, check client token and return 401 if not present
+  if (pathname.startsWith('/api/portal') && !pathname.startsWith('/api/portal/auth')) {
+    const clientToken = request.cookies.get('client_token')?.value;
+    
+    if (!clientToken) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    
     return NextResponse.next();
   }
   

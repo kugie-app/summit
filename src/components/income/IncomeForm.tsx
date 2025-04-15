@@ -284,7 +284,7 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
                     <option value="">Select an invoice (optional)</option>
                     {invoices.map((invoice) => (
                       <option key={invoice.id} value={invoice.id}>
-                        #{invoice.invoiceNumber} - {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(invoice.totalAmount))}
+                        #{invoice.invoiceNumber} - {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(parseFloat(invoice.totalAmount))}
                       </option>
                     ))}
                   </select>

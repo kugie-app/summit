@@ -523,17 +523,17 @@ export function InvoiceForm({ initialData, onSuccess, onCancel }: InvoiceFormPro
             <div className="mt-4 flex flex-col items-end space-y-1">
               <div className="grid grid-cols-2 gap-8 text-sm w-48">
                 <div className="text-muted-foreground">Subtotal:</div>
-                <div className="text-right">${form.watch('subtotal').toFixed(2)}</div>
+                <div className="text-right">IDR {form.watch('subtotal').toFixed(2)}</div>
               </div>
               <div className="grid grid-cols-2 gap-8 text-sm w-48">
                 <div className="text-muted-foreground">Tax ({form.watch('tax')}%):</div>
                 <div className="text-right">
-                  ${((form.watch('subtotal') * form.watch('tax')) / 100).toFixed(2)}
+                  IDR {((form.watch('subtotal') * form.watch('tax')) / 100).toFixed(2)}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-8 font-medium w-48">
                 <div>Total:</div>
-                <div className="text-right">${form.watch('total').toFixed(2)}</div>
+                <div className="text-right">IDR {form.watch('total').toFixed(2)}</div>
               </div>
             </div>
           </CardContent>

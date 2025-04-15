@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ClientForm } from './ClientForm';
-import { ClientFormValues } from '@/lib/validations/client';
 import { PlusIcon } from 'lucide-react';
 
 interface Client {
