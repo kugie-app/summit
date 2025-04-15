@@ -230,52 +230,55 @@ export async function POST(request: NextRequest) {
     
     // Insert invoice using a simple query approach to avoid schema issues
     const now = new Date();
+    const nowISO = now.toISOString();
+    const issueDateObj = new Date(issueDate);
+    const dueDateObj = new Date(dueDate);
     
     // Create raw SQL statement to insert invoice
-    const insertInvoice = sql`
-      INSERT INTO invoices (
-        company_id, client_id, invoice_number, status, 
-        issue_date, due_date, subtotal, tax, total, 
-        notes, created_at, updated_at, soft_delete
-      )
-      VALUES (
-        ${companyId}, ${clientId}, ${invoiceNumber}, ${status},
-        ${new Date(issueDate)}, ${new Date(dueDate)}, ${subtotal.toFixed(2)}, ${tax.toFixed(2)}, ${total.toFixed(2)},
-        ${notes || null}, ${now}, ${now}, false
-      )
-      RETURNING *
-    `;
-    
-    const invoiceResult = await db.execute(insertInvoice);
-    const newInvoice = invoiceResult.rows[0];
+    const newInvoice: typeof invoices.$inferInsert = {
+      companyId: companyId,
+      clientId: clientId,
+      invoiceNumber: invoiceNumber,
+      status: status,
+      issueDate: issueDateObj.toISOString(),
+      dueDate: dueDateObj.toISOString(),
+      subtotal: subtotal.toFixed(2),
+      tax: tax.toFixed(2),
+      total: total.toFixed(2),
+      notes: notes || null,
+      createdAt: now,
+      updatedAt: now,
+      softDelete: false,
+    };
+
+    const insertResult = await db.insert(invoices).values(newInvoice).returning();
     
     // Create invoice items
     const createdItems = [];
     
     for (const item of items) {
       const amount = item.quantity * parseFloat(item.unitPrice);
+
+      // Create SQL statement for each item to maintain consistent approach
+      const newItem: typeof invoiceItems.$inferInsert = {
+        invoiceId: insertResult[0].id,
+        description: item.description,
+        quantity: item.quantity.toString(),
+        unitPrice: item.unitPrice.toString(),
+        amount: amount.toString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       
-      const insertItem = sql`
-        INSERT INTO invoice_items (
-          invoice_id, description, quantity, unit_price, 
-          amount, created_at, updated_at
-        )
-        VALUES (
-          ${newInvoice.id}, ${item.description}, ${item.quantity.toString()}, ${item.unitPrice},
-          ${amount.toFixed(2)}, ${now}, ${now}
-        )
-        RETURNING *
-      `;
-      
-      const itemResult = await db.execute(insertItem);
-      createdItems.push(itemResult.rows[0]);
+      const itemResult = await db.insert(invoiceItems).values(newItem).returning();
+      createdItems.push(itemResult[0]);
     }
     
     // Format response
     const client = existingClient[0];
     
     return NextResponse.json({
-      ...newInvoice,
+      ...insertResult[0],
       client: {
         id: client.id,
         name: client.name,
@@ -283,10 +286,10 @@ export async function POST(request: NextRequest) {
       },
       items: createdItems.map(item => ({
         id: item.id,
-        invoiceId: item.invoice_id,
+        invoiceId: item.invoiceId,
         description: item.description,
         quantity: item.quantity,
-        unitPrice: item.unit_price,
+        unitPrice: item.unitPrice,
         amount: item.amount,
       })),
     }, { status: 201 });

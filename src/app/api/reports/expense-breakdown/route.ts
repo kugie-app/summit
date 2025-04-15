@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '@/lib/db';
 import { expenses, expenseCategories } from '@/lib/db/schema';
-import { and, eq, sql, gte, lte } from 'drizzle-orm';
+import { and, eq, sql, gte, lte, sum, desc, asc } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
-import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { subMonths, startOfMonth, endOfMonth, format } from 'date-fns';
 
 // GET /api/reports/expense-breakdown
 export async function GET(request: NextRequest) {
@@ -25,55 +25,77 @@ export async function GET(request: NextRequest) {
     const endDate = new Date();
     const startDate = subMonths(startOfMonth(endDate), months - 1);
     
-    // Query for expenses by category
-    const expensesByCategoryQuery = sql`
-      SELECT 
-        ec.name as category_name,
-        COALESCE(SUM(CAST(e.amount AS NUMERIC)), 0) as total_amount
-      FROM expense_categories ec
-      LEFT JOIN expenses e ON ec.id = e.category_id 
-        AND e.company_id = ${companyId}
-        AND e.soft_delete = false
-        AND e.expense_date >= ${startDate}
-        AND e.expense_date <= ${endDate}
-      WHERE 
-        ec.company_id = ${companyId}
-        AND ec.soft_delete = false
-      GROUP BY ec.id, ec.name
-      ORDER BY total_amount DESC
-    `;
+    // Convert dates to ISO strings for SQL
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
     
-    const expensesByCategoryResult = await db.execute(expensesByCategoryQuery);
+    // First, get all categories for the company
+    const categoriesResult = await db
+      .select({
+        id: expenseCategories.id,
+        name: expenseCategories.name,
+      })
+      .from(expenseCategories)
+      .where(
+        and(
+          eq(expenseCategories.companyId, companyId),
+          eq(expenseCategories.softDelete, false)
+        )
+      );
     
-    // Query for expenses by month
-    const expensesByMonthQuery = sql`
-      SELECT 
-        date_trunc('month', e.expense_date) as month,
-        COALESCE(SUM(CAST(e.amount AS NUMERIC)), 0) as total_amount
-      FROM expenses e
-      WHERE 
-        e.company_id = ${companyId}
-        AND e.soft_delete = false
-        AND e.expense_date >= ${startDate}
-        AND e.expense_date <= ${endDate}
-      GROUP BY month
-      ORDER BY month ASC
-    `;
+    // Now get expense totals by category using Drizzle's query builder with SQL functions
+    const expensesByCategoryPromises = categoriesResult.map(async (category) => {
+      const result = await db
+        .select({
+          totalAmount: sql`COALESCE(SUM(CAST(${expenses.amount} AS NUMERIC)), 0)`.as('total_amount'),
+        })
+        .from(expenses)
+        .where(
+          and(
+            eq(expenses.categoryId, category.id),
+            eq(expenses.companyId, companyId),
+            eq(expenses.softDelete, false),
+            gte(expenses.expenseDate, startDateStr),
+            lte(expenses.expenseDate, endDateStr)
+          )
+        );
+      
+      return {
+        category: category.name,
+        amount: parseFloat(result[0].totalAmount as string),
+      };
+    });
     
-    const expensesByMonthResult = await db.execute(expensesByMonthQuery);
+    const expensesByCategory = await Promise.all(expensesByCategoryPromises);
+    // Sort by amount descending
+    expensesByCategory.sort((a, b) => b.amount - a.amount);
+    
+    // For expenses by month, use Drizzle's query builder with SQL fragments
+    // for PostgreSQL-specific functions
+    const expensesByMonthResult = await db
+      .select({
+        month: sql`date_trunc('month', ${expenses.expenseDate})`.as('month'),
+        totalAmount: sql`COALESCE(SUM(CAST(${expenses.amount} AS NUMERIC)), 0)`.as('total_amount'),
+      })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.companyId, companyId),
+          eq(expenses.softDelete, false),
+          gte(expenses.expenseDate, startDateStr),
+          lte(expenses.expenseDate, endDateStr)
+        )
+      )
+      .groupBy(sql`month`)
+      .orderBy(sql`month`);
     
     // Format the data for the frontend
-    const expensesByCategory = expensesByCategoryResult.rows.map(row => ({
-      category: row.category_name as string,
-      amount: parseFloat(row.total_amount as string),
-    }));
-    
-    const expensesByMonth = expensesByMonthResult.rows.map(row => ({
+    const expensesByMonth = expensesByMonthResult.map(row => ({
       month: new Date(row.month as string).toLocaleDateString('en-US', { 
         month: 'short', 
         year: 'numeric' 
       }),
-      amount: parseFloat(row.total_amount as string),
+      amount: parseFloat(row.totalAmount as string),
     }));
     
     return NextResponse.json({

@@ -41,7 +41,11 @@ const formatDate = (date: string | Date) => {
 };
 
 const formatCurrency = (amount: number | string) => {
-  return `$${Number(amount).toFixed(2)}`;
+  // apply id-ID currency format
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+  }).format(Number(amount));
 };
 
 export const QuoteEmail: React.FC<QuoteEmailProps> = ({

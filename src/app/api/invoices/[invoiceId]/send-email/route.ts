@@ -89,7 +89,10 @@ export async function POST(
     };
 
     const formatCurrency = (amount: string | number) => {
-      return `$${parseFloat(amount.toString()).toFixed(2)}`;
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+      }).format(Number(amount));
     };
 
     // Create a simple HTML email
@@ -167,7 +170,8 @@ export async function POST(
     });
 
     if (error) {
-      console.error('Error sending email:', error);
+      console.error('Error sending invoice email:', JSON.stringify(error));
+      console.error('Error data:', JSON.stringify(data));
       return NextResponse.json(
         { message: 'Failed to send email', error: error.message },
         { status: 500 }

@@ -232,61 +232,58 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     
     // Create raw SQL statement to insert quote
-    const insertQuote = sql`
-      INSERT INTO quotes (
-        company_id, client_id, quote_number, status, 
-        issue_date, expiry_date, subtotal, tax, total, 
-        notes, created_at, updated_at, soft_delete
-      )
-      VALUES (
-        ${companyId}, ${clientId}, ${quoteNumber}, ${status},
-        ${new Date(issueDate)}, ${new Date(expiryDate)}, ${subtotal.toFixed(2)}, ${tax.toFixed(2)}, ${total.toFixed(2)},
-        ${notes || null}, ${now}, ${now}, false
-      )
-      RETURNING *
-    `;
+    const newQuote: typeof quotes.$inferInsert = {
+      companyId,
+      clientId,
+      quoteNumber,
+      status,
+      issueDate,
+      expiryDate,
+      subtotal: subtotal.toString(),
+      tax: tax.toString(),
+      total: total.toString(),
+      notes,
+      createdAt: now,
+      updatedAt: now,
+      softDelete: false
+    };
     
-    const quoteResult = await db.execute(insertQuote);
-    const newQuote = quoteResult.rows[0];
+    const quoteResult = await db.insert(quotes).values(newQuote).returning();
     
     // Create quote items
     const createdItems = [];
     
     for (const item of items) {
       const amount = item.quantity * parseFloat(item.unitPrice);
+
+      const newItem: typeof quoteItems.$inferInsert = {
+        quoteId: quoteResult[0].id,
+        description: item.description,
+        quantity: item.quantity.toString(),
+        unitPrice: item.unitPrice,
+        amount: amount.toString(),
+      };
       
-      const insertItem = sql`
-        INSERT INTO quote_items (
-          quote_id, description, quantity, unit_price, 
-          amount, created_at, updated_at
-        )
-        VALUES (
-          ${newQuote.id}, ${item.description}, ${item.quantity.toString()}, ${item.unitPrice},
-          ${amount.toFixed(2)}, ${now}, ${now}
-        )
-        RETURNING *
-      `;
-      
-      const itemResult = await db.execute(insertItem);
-      createdItems.push(itemResult.rows[0]);
+      const itemResult = await db.insert(quoteItems).values(newItem).returning();
+      createdItems.push(itemResult[0]);
     }
     
     // Format response
     const client = existingClient[0];
     
     return NextResponse.json({
-      id: newQuote.id,
-      companyId: newQuote.company_id,
-      clientId: newQuote.client_id,
-      quoteNumber: newQuote.quote_number,
-      status: newQuote.status,
-      issueDate: newQuote.issue_date,
-      expiryDate: newQuote.expiry_date,
-      subtotal: newQuote.subtotal,
-      tax: newQuote.tax,
-      total: newQuote.total,
-      notes: newQuote.notes,
-      createdAt: newQuote.created_at,
+      id: quoteResult[0].id,
+      companyId: quoteResult[0].companyId,
+      clientId: quoteResult[0].clientId,
+      quoteNumber: quoteResult[0].quoteNumber,
+      status: quoteResult[0].status,
+      issueDate: quoteResult[0].issueDate,
+      expiryDate: quoteResult[0].expiryDate,
+      subtotal: quoteResult[0].subtotal,
+      tax: quoteResult[0].tax,
+      total: quoteResult[0].total,
+      notes: quoteResult[0].notes,
+      createdAt: quoteResult[0].createdAt,
       client: {
         id: client.id,
         name: client.name,
@@ -294,10 +291,10 @@ export async function POST(request: NextRequest) {
       },
       items: createdItems.map(item => ({
         id: item.id,
-        quoteId: item.quote_id,
+        quoteId: item.quoteId,
         description: item.description,
         quantity: item.quantity,
-        unitPrice: item.unit_price,
+        unitPrice: item.unitPrice,
         amount: item.amount,
       })),
     });

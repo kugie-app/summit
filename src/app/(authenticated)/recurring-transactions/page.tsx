@@ -213,10 +213,10 @@ export default function RecurringTransactionsPage() {
                         <TableCell>
                           <Badge variant="outline" className={getFrequencyColor(item.recurring)}>
                             <RefreshCw className="h-3 w-3 mr-1 inline" />
-                            {item.recurring.charAt(0).toUpperCase() + item.recurring.slice(1)}
+                            {item.recurring?.charAt(0).toUpperCase() + item.recurring?.slice(1)}
                           </Badge>
                         </TableCell>
-                        <TableCell>{formatDate(item.nextDueDate)}</TableCell>
+                        <TableCell>{item.nextDueDate ? formatDate(item.nextDueDate) : 'N/A'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

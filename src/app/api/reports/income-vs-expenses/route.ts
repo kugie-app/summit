@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '@/lib/db';
 import { income, expenses } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
+import { sql, and, eq, gte, lte } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -25,38 +25,45 @@ export async function GET(request: NextRequest) {
     const endDate = new Date();
     const startDate = subMonths(startOfMonth(endDate), months - 1);
     
-    // Query to get monthly income
-    const monthlyIncomeQuery = sql`
-      SELECT 
-        date_trunc('month', income_date) as month,
-        COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
-      FROM income
-      WHERE 
-        company_id = ${companyId}
-        AND soft_delete = false
-        AND income_date >= ${startDate}
-        AND income_date <= ${endDate}
-      GROUP BY date_trunc('month', income_date)
-      ORDER BY month ASC
-    `;
+    // Convert dates to ISO strings for SQL
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
     
-    // Query to get monthly expenses
-    const monthlyExpensesQuery = sql`
-      SELECT 
-        date_trunc('month', expense_date) as month,
-        COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
-      FROM expenses
-      WHERE 
-        company_id = ${companyId}
-        AND soft_delete = false
-        AND expense_date >= ${startDate}
-        AND expense_date <= ${endDate}
-      GROUP BY date_trunc('month', expense_date)
-      ORDER BY month ASC
-    `;
+    // Query to get monthly income using Drizzle's query builder
+    const monthlyIncomeResult = await db
+      .select({
+        month: sql`date_trunc('month', ${income.incomeDate})`.as('month'),
+        total: sql`COALESCE(SUM(CAST(${income.amount} AS NUMERIC)), 0)`.as('total'),
+      })
+      .from(income)
+      .where(
+        and(
+          eq(income.companyId, companyId),
+          eq(income.softDelete, false),
+          gte(income.incomeDate, startDateStr),
+          lte(income.incomeDate, endDateStr)
+        )
+      )
+      .groupBy(sql`month`)
+      .orderBy(sql`month asc`);
     
-    const monthlyIncomeResult = await db.execute(monthlyIncomeQuery);
-    const monthlyExpensesResult = await db.execute(monthlyExpensesQuery);
+    // Query to get monthly expenses using Drizzle's query builder
+    const monthlyExpensesResult = await db
+      .select({
+        month: sql`date_trunc('month', ${expenses.expenseDate})`.as('month'),
+        total: sql`COALESCE(SUM(CAST(${expenses.amount} AS NUMERIC)), 0)`.as('total'),
+      })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.companyId, companyId),
+          eq(expenses.softDelete, false),
+          gte(expenses.expenseDate, startDateStr),
+          lte(expenses.expenseDate, endDateStr)
+        )
+      )
+      .groupBy(sql`month`)
+      .orderBy(sql`month asc`);
     
     // Create a map of months for easier comparison
     const monthsData: Record<string, { income: number; expenses: number; profit: number }> = {};
@@ -70,7 +77,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Fill in income data
-    monthlyIncomeResult.rows.forEach(row => {
+    monthlyIncomeResult.forEach(row => {
       const date = new Date(row.month as string);
       const monthKey = format(date, 'yyyy-MM');
       const amount = parseFloat(row.total as string);
@@ -82,7 +89,7 @@ export async function GET(request: NextRequest) {
     });
     
     // Fill in expense data
-    monthlyExpensesResult.rows.forEach(row => {
+    monthlyExpensesResult.forEach(row => {
       const date = new Date(row.month as string);
       const monthKey = format(date, 'yyyy-MM');
       const amount = parseFloat(row.total as string);

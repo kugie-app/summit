@@ -239,12 +239,12 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
           id: item.id,
           description: item.description,
           quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          amount: item.amount
+          unitPrice: item.unitPrice.toString(),
+          amount: item.amount.toString()
         })),
         issueDate: format(values.issueDate, 'yyyy-MM-dd'),
         expiryDate: format(values.expiryDate, 'yyyy-MM-dd'),
-        taxRate: values.tax, // Send the tax rate to the API
+        taxRate: values.tax,
       };
 
       const url = isEditing 
@@ -267,8 +267,6 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
       }
 
       const savedQuote = await response.json();
-
-      toast.success(isEditing ? 'Quote updated successfully' : 'Quote created successfully');
       
       if (onSuccess) {
         onSuccess(savedQuote);
@@ -456,64 +454,72 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
                 No items added yet. Click &quot;Add Item&quot; to add your first item.
               </div>
             ) : (
-              <div className="space-y-4">
-                {items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-1 md:grid-cols-12 gap-4 border-b pb-4"
-                  >
-                    <div className="md:col-span-6">
-                      <p className="font-medium">{item.description}</p>
-                    </div>
-                    <div className="md:col-span-2 text-right">
-                      <p className="text-muted-foreground">Qty: {item.quantity.toFixed(2)}</p>
-                    </div>
-                    <div className="md:col-span-2 text-right">
-                      <p className="text-muted-foreground">Price: ${item.unitPrice.toFixed(2)}</p>
-                    </div>
-                    <div className="md:col-span-2 flex justify-end items-center space-x-2">
-                      <p>${item.amount.toFixed(2)}</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditItem(item, index)}
-                        disabled={isSubmitting || showItemForm}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleRemoveItem(index)}
-                        disabled={isSubmitting || showItemForm}
-                      >
-                        Delete
-                      </Button>
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full divide-y divide-border">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Description</th>
+                      <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Quantity</th>
+                      <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Unit Price</th>
+                      <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Amount</th>
+                      <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {items.map((item, index) => (
+                      <tr key={index} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 text-sm">{item.description}</td>
+                        <td className="px-4 py-3 text-sm text-right">{item.quantity.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm text-right">IDR {item.unitPrice.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-right">IDR {item.amount.toFixed(2)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-center space-x-4">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditItem(item, index)}
+                              disabled={isSubmitting || showItemForm}
+                              className="h-8 w-16"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-16 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => handleRemoveItem(index)}
+                              disabled={isSubmitting || showItemForm}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {/* Separate totals section with clear spacing */}
+                <div className="mt-4 border-t pt-4 flex flex-col items-end pr-4">
+                  <div className="grid grid-cols-2 gap-8 text-sm w-64">
+                    <div className="text-muted-foreground text-right">Subtotal:</div>
+                    <div className="text-right font-medium">IDR {form.watch('subtotal').toFixed(2)}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8 text-sm w-64 mt-1">
+                    <div className="text-muted-foreground text-right">Tax ({form.watch('tax')}%):</div>
+                    <div className="text-right font-medium">
+                      IDR {((form.watch('subtotal') * form.watch('tax')) / 100).toFixed(2)}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-4 flex flex-col items-end space-y-1">
-              <div className="grid grid-cols-2 gap-8 text-sm w-48">
-                <div className="text-muted-foreground">Subtotal:</div>
-                <div className="text-right">${form.watch('subtotal').toFixed(2)}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-8 text-sm w-48">
-                <div className="text-muted-foreground">Tax ({form.watch('tax')}%):</div>
-                <div className="text-right">
-                  ${((form.watch('subtotal') * form.watch('tax')) / 100).toFixed(2)}
+                  <div className="grid grid-cols-2 gap-8 text-base w-64 mt-2 border-t pt-2">
+                    <div className="font-medium text-right">Total:</div>
+                    <div className="text-right font-bold">IDR {form.watch('total').toFixed(2)}</div>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-8 font-medium w-48">
-                <div>Total:</div>
-                <div className="text-right">${form.watch('total').toFixed(2)}</div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
