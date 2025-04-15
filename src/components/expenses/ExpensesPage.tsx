@@ -146,7 +146,7 @@ export default function ExpensesPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <Badge variant="success">Approved</Badge>;
+        return <Badge variant="default">Approved</Badge>;
       case "rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       default:

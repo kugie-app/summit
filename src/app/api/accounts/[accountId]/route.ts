@@ -9,17 +9,18 @@ import { accountSchema, accountParamsSchema } from '@/lib/validations/account';
 // GET /api/accounts/[accountId] - Get a specific account
 export async function GET(
   request: NextRequest,
-  { params }: { params: { accountId: string } }
+  { params }: { params: Promise<{ accountId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
+    const { accountId } = await params;
     
     if (!session?.user || !session.user.companyId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
     
     // Validate account ID
-    const paramValidation = accountParamsSchema.safeParse({ accountId: params.accountId });
+    const paramValidation = accountParamsSchema.safeParse({ accountId: accountId });
     
     if (!paramValidation.success) {
       return NextResponse.json(
@@ -28,7 +29,6 @@ export async function GET(
       );
     }
     
-    const accountId = parseInt(params.accountId);
     const companyId = parseInt(session.user.companyId);
     
     // Fetch the account
@@ -37,7 +37,7 @@ export async function GET(
       .from(accounts)
       .where(
         and(
-          eq(accounts.id, accountId),
+          eq(accounts.id, parseInt(accountId)),
           eq(accounts.companyId, companyId),
           eq(accounts.softDelete, false)
         )
@@ -54,7 +54,7 @@ export async function GET(
       .from(transactions)
       .where(
         and(
-          eq(transactions.accountId, accountId),
+          eq(transactions.accountId, parseInt(accountId)),
           eq(transactions.softDelete, false)
         )
       )
@@ -78,17 +78,18 @@ export async function GET(
 // PUT /api/accounts/[accountId] - Update an account
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { accountId: string } }
+  { params }: { params: Promise<{ accountId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
+    const { accountId } = await params;
     
     if (!session?.user || !session.user.companyId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
     
     // Validate account ID
-    const paramValidation = accountParamsSchema.safeParse({ accountId: params.accountId });
+    const paramValidation = accountParamsSchema.safeParse({ accountId: accountId });
     
     if (!paramValidation.success) {
       return NextResponse.json(
@@ -108,7 +109,6 @@ export async function PUT(
       );
     }
     
-    const accountId = parseInt(params.accountId);
     const companyId = parseInt(session.user.companyId);
     
     // Check if account exists and belongs to the company
@@ -117,7 +117,7 @@ export async function PUT(
       .from(accounts)
       .where(
         and(
-          eq(accounts.id, accountId),
+          eq(accounts.id, parseInt(accountId)),
           eq(accounts.companyId, companyId),
           eq(accounts.softDelete, false)
         )
@@ -142,7 +142,7 @@ export async function PUT(
       })
       .where(
         and(
-          eq(accounts.id, accountId),
+          eq(accounts.id, parseInt(accountId)),
           eq(accounts.companyId, companyId)
         )
       )
@@ -162,7 +162,7 @@ export async function PUT(
 // DELETE /api/accounts/[accountId] - Soft delete an account
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { accountId: string } }
+  { params }: { params: Promise<{ accountId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -172,7 +172,8 @@ export async function DELETE(
     }
     
     // Validate account ID
-    const paramValidation = accountParamsSchema.safeParse({ accountId: params.accountId });
+    const { accountId } = await params;
+    const paramValidation = accountParamsSchema.safeParse({ accountId: accountId });
     
     if (!paramValidation.success) {
       return NextResponse.json(
@@ -181,7 +182,6 @@ export async function DELETE(
       );
     }
     
-    const accountId = parseInt(params.accountId);
     const companyId = parseInt(session.user.companyId);
     
     // Check if account exists and belongs to the company
@@ -190,7 +190,7 @@ export async function DELETE(
       .from(accounts)
       .where(
         and(
-          eq(accounts.id, accountId),
+          eq(accounts.id, parseInt(accountId)),
           eq(accounts.companyId, companyId),
           eq(accounts.softDelete, false)
         )
@@ -207,7 +207,7 @@ export async function DELETE(
       .from(transactions)
       .where(
         and(
-          eq(transactions.accountId, accountId),
+          eq(transactions.accountId, parseInt(accountId)),
           eq(transactions.softDelete, false)
         )
       )
@@ -229,7 +229,7 @@ export async function DELETE(
       })
       .where(
         and(
-          eq(accounts.id, accountId),
+          eq(accounts.id, parseInt(accountId)),
           eq(accounts.companyId, companyId)
         )
       );
