@@ -297,12 +297,6 @@ export function InvoiceForm({ initialData, onSuccess, onCancel }: InvoiceFormPro
       
       const invoice = await response.json();
       
-      toast.success(
-        isEditing 
-          ? 'Invoice updated successfully' 
-          : 'Invoice created successfully'
-      );
-      
       if (onSuccess) {
         onSuccess(invoice);
       } else {
@@ -513,8 +507,8 @@ export function InvoiceForm({ initialData, onSuccess, onCancel }: InvoiceFormPro
                   >
                     <div className="col-span-6 px-2">{item.description}</div>
                     <div className="col-span-2 px-2 text-right">{item.quantity}</div>
-                    <div className="col-span-2 px-2 text-right">${item.unitPrice.toFixed(2)}</div>
-                    <div className="col-span-2 px-2 text-right">${item.amount.toFixed(2)}</div>
+                    <div className="col-span-2 px-2 text-right">Rp{item.unitPrice.toFixed(2)}</div>
+                    <div className="col-span-2 px-2 text-right">Rp{item.amount.toFixed(2)}</div>
                   </div>
                 ))}
               </div>

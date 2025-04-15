@@ -12,6 +12,8 @@ import {
   Settings,
   Building,
   RefreshCw,
+  Tags,
+  FolderTree,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,8 +22,10 @@ const navItems = [
   { label: 'Clients', icon: Users, href: '/clients' },
   { label: 'Invoices', icon: FileText, href: '/invoices' },
   { label: 'Quotes', icon: FileText, href: '/quotes' },
-  { label: 'Expenses', icon: Receipt, href: '/expenses' },
   { label: 'Income', icon: CreditCard, href: '/income' },
+  { label: 'Income Categories', icon: Tags, href: '/income-categories' },
+  { label: 'Expenses', icon: Receipt, href: '/expenses' },
+  { label: 'Expense Categories', icon: FolderTree, href: '/expense-categories' },
   { label: 'Recurring', icon: RefreshCw, href: '/recurring-transactions' },
   { label: 'Reports', icon: LineChart, href: '/reports' },
   { label: 'Company', icon: Building, href: '/company' },

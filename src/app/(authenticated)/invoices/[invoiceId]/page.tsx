@@ -123,6 +123,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         body: JSON.stringify({
           ...invoice,
           status: newStatus,
+          notes: invoice.notes || '',
         }),
       });
       
@@ -130,7 +131,9 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         throw new Error(`Failed to update invoice status to ${newStatus}`);
       }
       
-      const updatedInvoice = await response.json();
+      // fetch the updated invoice
+      const updatedInvoiceResponse = await fetch(`/api/invoices/${invoiceId}`);
+      const updatedInvoice = await updatedInvoiceResponse.json();
       setInvoice(updatedInvoice);
       toast.success(`Invoice marked as ${newStatus}`);
     } catch (error) {
@@ -180,7 +183,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
     if (!invoice) return;
     
     // Check if client has an email
-    if (!invoice.client.email) {
+    if (!invoice.client?.email) {
       toast.error('Client does not have an email address');
       return;
     }
@@ -247,6 +250,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
       default: return 'bg-gray-500';
     }
   };
+
+  const formatCurrency = (amount: string) => {
+    return Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(parseFloat(amount));
+  };
   
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -257,9 +264,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Invoice {invoice.invoiceNumber}</h1>
-            <p className="text-muted-foreground">
-              {invoice.client.name} • {format(new Date(invoice.createdAt), 'PPP')}
-            </p>
           </div>
         </div>
         
@@ -301,7 +305,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
             variant="outline" 
             size="sm" 
             onClick={handleSendEmail}
-            disabled={sendingEmail || !invoice.client.email}
+            disabled={sendingEmail || !invoice.client?.email}
           >
             <Send className="h-4 w-4 mr-2" />
             {sendingEmail ? 'Sending...' : 'Send Email'}
@@ -337,10 +341,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <p className="font-semibold">{invoice.client.name}</p>
-              {invoice.client.email && <p>{invoice.client.email}</p>}
-              {invoice.client.phone && <p>{invoice.client.phone}</p>}
-              {invoice.client.address && <p className="whitespace-pre-line">{invoice.client.address}</p>}
+              <p className="font-semibold">{invoice.client?.name}</p>
+              {invoice.client?.email && <p>{invoice.client?.email}</p>}
+              {invoice.client?.phone && <p>{invoice.client?.phone}</p>}
+              {invoice.client?.address && <p className="whitespace-pre-line">{invoice.client?.address}</p>}
             </div>
           </CardContent>
         </Card>
@@ -378,7 +382,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
             <CardTitle>Amount Due</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">${parseFloat(invoice.total).toFixed(2)}</div>
+            <div className="text-3xl font-bold">{formatCurrency(invoice.total)}</div>
             <div className="text-muted-foreground mt-2">
               Status: <span className="font-medium">{invoice.status}</span>
             </div>
@@ -405,8 +409,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                 <TableRow key={item.id}>
                   <TableCell>{item.description}</TableCell>
                   <TableCell className="text-right">{parseFloat(item.quantity).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${parseFloat(item.unitPrice).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${parseFloat(item.amount).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">IDR {parseFloat(item.unitPrice).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">IDR {parseFloat(item.amount).toFixed(2)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -416,15 +420,15 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
             <div className="space-y-2 w-48">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span>${parseFloat(invoice.subtotal).toFixed(2)}</span>
+                <span>{formatCurrency(invoice.subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tax:</span>
-                <span>${parseFloat(invoice.tax).toFixed(2)}</span>
+                <span>{formatCurrency(invoice.tax)}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Total:</span>
-                <span>${parseFloat(invoice.total).toFixed(2)}</span>
+                <span>{formatCurrency(invoice.total)}</span>
               </div>
             </div>
           </div>

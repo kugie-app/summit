@@ -38,36 +38,27 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Create a unique filename
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    // Get file extension
     const originalName = file.name;
     const fileExt = originalName.split(".").pop();
     
-    // Generate a unique ID and create the new filename
     const uniqueId = uuidv4();
     const newFilename = `receipt-${uniqueId}.${fileExt}`;
     
-    // Create company-specific directory if it doesn't exist
     const uploadDir = join(process.cwd(), "public", "uploads", "receipts", companyId.toString());
     
-    try {
-      // Create directory recursively if it doesn't exist
-      // Note: In production, you'd typically use a cloud storage solution
-      await writeFile(join(uploadDir, newFilename), buffer);
-    } catch (error) {
-      console.error("Error writing file:", error);
-      // If there's an error creating the directory or writing the file,
-      // it's likely a permissions issue with the local filesystem
-      return NextResponse.json(
-        { error: "Failed to save file. Please try again." },
-        { status: 500 }
-      );
-    }
+    // try {
+    //   await writeFile(join(uploadDir, newFilename), buffer);
+    // } catch (error) {
+    //   console.error("Error writing file:", error);
+    //   return NextResponse.json(
+    //     { error: "Failed to save file. Please try again." },
+    //     { status: 500 }
+    //   );
+    // }
     
-    // Return the URL to the uploaded file
     const fileUrl = `/uploads/receipts/${companyId}/${newFilename}`;
     
     return NextResponse.json({

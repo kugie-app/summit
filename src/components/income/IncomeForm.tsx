@@ -325,6 +325,7 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
                     {...register("currency")}
                     className="ml-2 border rounded p-2 w-24"
                   >
+                    <option value="IDR">IDR</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
                     <option value="GBP">GBP</option>

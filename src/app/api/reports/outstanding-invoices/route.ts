@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '@/lib/db';
 import { invoices, clients } from '@/lib/db/schema';
-import { and, eq, sql, or, not } from 'drizzle-orm';
+import { and, eq, sql, or, not, inArray } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { differenceInDays } from 'date-fns';
 
@@ -17,32 +17,33 @@ export async function GET(request: NextRequest) {
 
     const companyId = parseInt(session.user.companyId);
     
-    // Get all outstanding invoices (not paid, not cancelled)
-    const outstandingInvoicesQuery = sql`
-      SELECT 
-        i.id,
-        i.invoice_number,
-        i.issue_date,
-        i.due_date,
-        i.total,
-        i.status,
-        c.id as client_id,
-        c.name as client_name
-      FROM invoices i
-      JOIN clients c ON i.client_id = c.id
-      WHERE 
-        i.company_id = ${companyId}
-        AND i.soft_delete = false
-        AND i.status NOT IN ('paid', 'cancelled')
-      ORDER BY i.due_date ASC
-    `;
-    
-    const outstandingInvoicesResult = await db.execute(outstandingInvoicesQuery);
+    // Get all outstanding invoices (not paid, not cancelled) using Drizzle query builder
+    const outstandingInvoicesResult = await db
+      .select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        total: invoices.total,
+        status: invoices.status,
+        clientId: clients.id,
+        clientName: clients.name
+      })
+      .from(invoices)
+      .innerJoin(clients, eq(invoices.clientId, clients.id))
+      .where(
+        and(
+          eq(invoices.companyId, companyId),
+          eq(invoices.softDelete, false),
+          not(inArray(invoices.status, ['paid', 'cancelled']))
+        )
+      )
+      .orderBy(invoices.dueDate);
     
     // Process and categorize the invoices
     const today = new Date();
-    const outstandingInvoices = outstandingInvoicesResult.rows.map(row => {
-      const dueDate = new Date(row.due_date as string);
+    const outstandingInvoices = outstandingInvoicesResult.map(row => {
+      const dueDate = new Date(row.dueDate);
       const daysOverdue = differenceInDays(today, dueDate);
       
       // Categorize by age
@@ -56,13 +57,13 @@ export async function GET(request: NextRequest) {
       
       return {
         id: row.id,
-        invoiceNumber: row.invoice_number,
-        issueDate: row.issue_date,
-        dueDate: row.due_date,
-        total: parseFloat(row.total as string),
+        invoiceNumber: row.invoiceNumber,
+        issueDate: row.issueDate,
+        dueDate: row.dueDate,
+        total: parseFloat(row.total.toString()),
         status: row.status,
-        clientId: row.client_id,
-        clientName: row.client_name,
+        clientId: row.clientId,
+        clientName: row.clientName,
         daysOverdue: Math.max(0, daysOverdue),
         ageCategory
       };
@@ -89,14 +90,14 @@ export async function GET(request: NextRequest) {
     const clientOutstanding: Record<string, { clientId: number; clientName: string; amount: number }> = {};
     
     outstandingInvoices.forEach(invoice => {
-      if (!clientOutstanding[invoice.clientId as number]) {
-        clientOutstanding[invoice.clientId as number] = {
-          clientId: invoice.clientId as number,
-          clientName: invoice.clientName as string,
+      if (!clientOutstanding[invoice.clientId]) {
+        clientOutstanding[invoice.clientId] = {
+          clientId: invoice.clientId,
+          clientName: invoice.clientName,
           amount: 0
         };
       }
-      clientOutstanding[invoice.clientId as number].amount += invoice.total;
+      clientOutstanding[invoice.clientId].amount += invoice.total;
     });
     
     const topClients = Object.values(clientOutstanding)

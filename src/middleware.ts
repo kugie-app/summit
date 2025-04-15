@@ -5,7 +5,12 @@ import { getToken } from 'next-auth/jwt';
 const publicPaths = [
   '/auth/signin',
   '/auth/signup',
+  '/auth/signout',
   '/api/auth',
+  // Add all paths related to accepting invitations
+  '/accept-invitation',
+  '/api/invitations/verify',
+  '/api/invitations/accept',
   // Client portal public paths
   '/portal/login',
   '/portal/verify',
@@ -15,8 +20,13 @@ const publicPaths = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Check if the path is public
-  if (publicPaths.some(path => pathname.startsWith(path))) {
+  // Check if the path is public or starts with one of the public paths
+  if (publicPaths.some(path => pathname === path || pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+  
+  // Special explicit handling for the accept-invitation path with query parameters
+  if (pathname === '/accept-invitation') {
     return NextResponse.next();
   }
   
@@ -67,7 +77,8 @@ export async function middleware(request: NextRequest) {
   
   if (!token) {
     const url = new URL('/auth/signin', request.url);
-    url.searchParams.set('callbackUrl', encodeURI(request.url));
+    // Use a simpler callbackUrl to avoid potential encoding issues
+    url.searchParams.set('callbackUrl', request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
   
