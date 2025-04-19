@@ -51,14 +51,14 @@ interface ExpenseFormProps {
 export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
   const router = useRouter();
   const isEditing = !!expenseId;
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
-  
+
   const {
     register,
     handleSubmit,
@@ -80,24 +80,24 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       nextDueDate: "",
     },
   });
-  
+
   const recurringValue = watch("recurring");
   const vendorIdValue = watch("vendorId");
-  
+
   useEffect(() => {
     fetchCategories();
     fetchVendors();
-    
+
     if (isEditing) {
       fetchExpense();
     }
   }, [isEditing, expenseId]);
-  
+
   const fetchVendors = async () => {
     try {
       const response = await fetch("/api/vendors");
       if (!response.ok) throw new Error("Failed to fetch vendors");
-      
+
       const data = await response.json();
       setVendors(data.data || []);
     } catch (error) {
@@ -105,12 +105,12 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       toast.error("Failed to load vendors");
     }
   };
-  
+
   const fetchCategories = async () => {
     try {
       const response = await fetch("/api/expense-categories");
       if (!response.ok) throw new Error("Failed to fetch categories");
-      
+
       const data = await response.json();
       setCategories(data.data || []);
     } catch (error) {
@@ -118,15 +118,15 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       toast.error("Failed to load expense categories");
     }
   };
-  
+
   const fetchExpense = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/expenses/${expenseId}`);
       if (!response.ok) throw new Error("Failed to fetch expense");
-      
+
       const data = await response.json();
-      
+
       // Populate form with expense data
       setValue("vendorId", data.vendorId ? String(data.vendorId) : "");
       setValue("vendor", data.vendor || "");
@@ -137,11 +137,11 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       setValue("categoryId", data.categoryId ? String(data.categoryId) : "");
       setValue("status", data.status);
       setValue("recurring", data.recurring);
-      
+
       if (data.nextDueDate) {
         setValue("nextDueDate", format(new Date(data.nextDueDate), "yyyy-MM-dd"));
       }
-      
+
       if (data.receiptUrl) {
         setExistingReceiptUrl(data.receiptUrl);
       }
@@ -153,24 +153,24 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       setIsLoading(false);
     }
   };
-  
+
   const uploadReceipt = async (): Promise<string | null> => {
     if (!receiptFile) return null;
-    
+
     const formData = new FormData();
     formData.append("receipt", receiptFile);
-    
+
     try {
       const response = await fetch("/api/upload/receipt", {
         method: "POST",
         body: formData,
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to upload receipt");
       }
-      
+
       const data = await response.json();
       return data.url;
     } catch (error) {
@@ -178,18 +178,18 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       throw error;
     }
   };
-  
+
   const onSubmit = async (data: ExpenseFormValues) => {
     setIsSubmitting(true);
-    
+
     try {
       let receiptUrl = existingReceiptUrl;
-      
+
       // Upload receipt if a new file was selected
       if (receiptFile) {
         receiptUrl = await uploadReceipt();
       }
-      
+
       const expenseData = {
         ...data,
         vendorId: data.vendorId ? parseInt(data.vendorId) : null,
@@ -198,10 +198,10 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
         // Only include nextDueDate if recurring is not "none"
         nextDueDate: data.recurring !== "none" ? data.nextDueDate : null,
       };
-      
+
       const url = isEditing ? `/api/expenses/${expenseId}` : "/api/expenses";
       const method = isEditing ? "PUT" : "POST";
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -209,12 +209,12 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
         },
         body: JSON.stringify(expenseData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to save expense");
       }
-      
+
       toast.success(`Expense ${isEditing ? "updated" : "created"} successfully`);
       router.push("/expenses");
       router.refresh();
@@ -225,7 +225,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       setIsSubmitting(false);
     }
   };
-  
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -233,7 +233,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto py-8">
       <Card>
@@ -257,6 +257,10 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   id="vendorId"
                   {...register("vendorId")}
                   className="w-full border rounded p-2"
+                  onChange={(e) => {
+                    const selectedVendor = vendors.find(vendor => vendor.id === parseInt(e.target.value));
+                    setValue("vendor", selectedVendor ? selectedVendor.name : "");
+                  }}
                 >
                   <option value="">Select a vendor</option>
                   {vendors.map((vendor) => (
@@ -266,7 +270,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   ))}
                 </select>
               </div>
-              
+
               {/* Manual Vendor Entry (only if no vendor selected) */}
               {!vendorIdValue && (
                 <div className="space-y-2">
@@ -283,7 +287,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   )}
                 </div>
               )}
-              
+
               {/* Amount */}
               <div className="space-y-2">
                 <Label htmlFor="amount">
@@ -316,7 +320,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   <p className="text-sm text-red-500">{errors.amount.message}</p>
                 )}
               </div>
-              
+
               {/* Expense Date */}
               <div className="space-y-2">
                 <Label htmlFor="expenseDate">
@@ -331,7 +335,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   <p className="text-sm text-red-500">{errors.expenseDate.message}</p>
                 )}
               </div>
-              
+
               {/* Category */}
               <div className="space-y-2">
                 <Label htmlFor="categoryId">Category</Label>
@@ -348,7 +352,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   ))}
                 </select>
               </div>
-              
+
               {/* Recurring */}
               <div className="space-y-2">
                 <Label htmlFor="recurring">Recurring</Label>
@@ -364,7 +368,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   <option value="yearly">Yearly</option>
                 </select>
               </div>
-              
+
               {/* Next Due Date (only if recurring) */}
               {recurringValue !== "none" && (
                 <div className="space-y-2">
@@ -376,7 +380,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   />
                 </div>
               )}
-              
+
               {/* Status */}
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -390,7 +394,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   <option value="rejected">Rejected</option>
                 </select>
               </div>
-              
+
               {/* Receipt Upload */}
               <div className="space-y-2">
                 <Label htmlFor="receipt">Receipt</Label>
@@ -408,10 +412,27 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                   />
                   {existingReceiptUrl && !receiptFile && (
                     <a
-                      href={existingReceiptUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline flex items-center"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        try {
+                          // Get the fileName - this is now just the path
+                          const url = new URL(existingReceiptUrl as string);
+                          const fileName = url.pathname.startsWith("/")
+                            ? url.pathname.slice(1)
+                            : url.pathname;
+                          // ALWAYS use our API to get a presigned URL
+                          const response = await fetch(`/api/download/receipt?fileName=${fileName}`);
+                          if (!response.ok) throw new Error('Failed to get download link');
+
+                          const data = await response.json();
+                          window.open(data.url, '_blank');
+                        } catch (error) {
+                          console.error('Error opening receipt:', error);
+                          toast.error('Failed to open receipt');
+                        }
+                      }}
+                      href="#"
+                      className="text-blue-600 hover:underline flex items-center cursor-pointer"
                     >
                       View Current
                     </a>
@@ -424,7 +445,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                 )}
               </div>
             </div>
-            
+
             {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
@@ -435,7 +456,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                 rows={3}
               />
             </div>
-            
+
             <div className="flex justify-end space-x-4 pt-4">
               <Button
                 type="button"

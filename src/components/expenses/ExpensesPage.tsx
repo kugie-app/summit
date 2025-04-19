@@ -247,10 +247,28 @@ export default function ExpensesPage() {
                         <TableCell>
                           {expense.receiptUrl ? (
                             <a
-                              href={expense.receiptUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  // Get the fileName - this is now just the path since we updated getFileUrl
+                                  const url = new URL(expense.receiptUrl as string);
+                                  const fileName = url.pathname.startsWith("/")
+                                    ? url.pathname.slice(1)
+                                    : url.pathname;
+                                  
+                                  // ALWAYS use our API to get a presigned URL
+                                  const response = await fetch(`/api/download/receipt?fileName=${fileName}`);
+                                  if (!response.ok) throw new Error('Failed to get download link');
+                                  
+                                  const data = await response.json();
+                                  window.open(data.url, '_blank');
+                                } catch (error) {
+                                  console.error('Error opening receipt:', error);
+                                  toast.error('Failed to open receipt');
+                                }
+                              }}
+                              href="#"
+                              className="text-blue-600 hover:underline cursor-pointer"
                             >
                               <FileUp className="h-4 w-4 inline" /> View
                             </a>
