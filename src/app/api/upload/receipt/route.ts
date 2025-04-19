@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { v4 as uuidv4 } from "uuid";
+import { uploadFile, getFileUrl } from "@/lib/minio";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +14,7 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    const companyId = session.user.companyId;
+    const companyId = parseInt(session.user.companyId.toString());
     
     // Check if the request is multipart/form-data
     const formData = await req.formData();
@@ -41,30 +39,21 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    const originalName = file.name;
-    const fileExt = originalName.split(".").pop();
+    // Upload file to Minio
+    const fileName = await uploadFile(
+      buffer,
+      file.name,
+      file.type,
+      companyId
+    );
     
-    const uniqueId = uuidv4();
-    const newFilename = `receipt-${uniqueId}.${fileExt}`;
-    
-    const uploadDir = join(process.cwd(), "public", "uploads", "receipts", companyId.toString());
-    
-    // try {
-    //   await writeFile(join(uploadDir, newFilename), buffer);
-    // } catch (error) {
-    //   console.error("Error writing file:", error);
-    //   return NextResponse.json(
-    //     { error: "Failed to save file. Please try again." },
-    //     { status: 500 }
-    //   );
-    // }
-    
-    const fileUrl = `/uploads/receipts/${companyId}/${newFilename}`;
+    // Get the file URL
+    const fileUrl = getFileUrl(fileName);
     
     return NextResponse.json({
       message: "File uploaded successfully",
       url: fileUrl,
-      fileName: newFilename
+      fileName: fileName
     }, { status: 201 });
   } catch (error) {
     console.error("Error processing file upload:", error);
