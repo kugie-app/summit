@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -7,21 +6,43 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { NextAuthProvider } from "@/components/NextAuthProvider";
 
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Summit - Internal Invoicing App",
-  description: "Business Internal Invoicing Application",
-};
+  title: {
+    template: '%s - Summit',
+    default: 'Summit - Internal Invoicing App',
+  },
+  description: "Financial essentials, nothing more.",
+  icons: [
+    {
+      rel: "icon",
+      url: "/favicon.ico"
+    },
+    {
+      rel: "apple-touch-icon",
+      url: "/apple-icon.png"
+    },
+    {
+      rel: "manifest",
+      url: "/site.webmanifest"
+    },
+  ],
+  openGraph: {
+    images: 'https://summit.kugie.dev/og-image.png',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Summit',
+    description: 'Financial essentials, nothing more.',
+    creator: 'Summit',
+    images: ['https://summit.kugie.dev/og-image.png'],
+  },
+}
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body>
         <NextAuthProvider>
           <ThemeProvider
             attribute="class"
@@ -43,5 +64,5 @@ export default function RootLayout({
         </NextAuthProvider>
       </body>
     </html>
-  );
+  )
 }

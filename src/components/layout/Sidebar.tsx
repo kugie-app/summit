@@ -17,6 +17,8 @@ import {
   Store,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -36,6 +38,10 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
+  const isDarkMode = resolvedTheme === 'dark';
+
+  const logoSrc = isDarkMode ? '/logomark_dark.png' : '/logomark.png';
 
   const groupedNavItems = navItems.reduce<Record<string, typeof navItems>>((acc, item) => {
     const group = item.group || 'General';
@@ -48,7 +54,9 @@ export function Sidebar() {
 
   return (
     <div className="w-64 bg-card h-screen p-4 border-r space-y-4 hidden md:block">
-      <div className="text-2xl font-bold mb-4">Summit</div>
+      <div className="text-2xl font-bold mb-4">
+        <Image src={logoSrc} alt="Summit" width={200} height={200} />
+      </div>
       <nav className="space-y-4">
         {Object.entries(groupedNavItems).map(([group, items]) => (
           <div key={group}>
