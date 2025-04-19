@@ -155,8 +155,6 @@ export async function POST(request: NextRequest) {
 
     const fromEmail = `${company?.name || 'Kugie Summit'} <${process.env.RESEND_FROM_EMAIL || 'summit@kugie.app'}>`;
     const toEmail = email;
-
-    console.log(fromEmail, toEmail);
     
     // Send email using Resend
     const { data, error } = await resend.emails.send({

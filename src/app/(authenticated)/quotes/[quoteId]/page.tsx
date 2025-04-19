@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { ArrowLeft, Trash2, Send, Download, Pencil } from 'lucide-react';
+import { ArrowLeft, Trash2, Send, Download, Pencil, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -56,6 +56,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [converting, setConverting] = useState(false);
   
   useEffect(() => {
     const fetchQuote = async () => {
@@ -212,6 +213,10 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
   };
   
   const handleConvertToInvoice = async () => {
+    if (!quote) return;
+    
+    setConverting(true);
+    
     try {
       const { quoteId } = await params;
       // This endpoint would need to be implemented
@@ -220,7 +225,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
       });
       
       if (!response.ok) {
-        throw new Error('Failed to convert quote to invoice');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to convert quote to invoice');
       }
       
       const data = await response.json();
@@ -230,7 +236,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
       router.push(`/invoices/${data.invoiceId}`);
     } catch (error) {
       console.error('Error converting to invoice:', error);
-      toast.error('Failed to convert quote to invoice');
+      toast.error(error instanceof Error ? error.message : 'Failed to convert quote to invoice');
+    } finally {
+      setConverting(false);
     }
   };
   
@@ -320,6 +328,18 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
           {quote.status === 'sent' && (
             <Button variant="outline" size="sm" onClick={() => handleStatusUpdate('accepted')}>
               Accept Quote
+            </Button>
+          )}
+          
+          {quote.status === 'accepted' && !quote.convertedToInvoiceId && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleConvertToInvoice}
+              disabled={converting}
+            >
+              <Receipt className="h-4 w-4 mr-2" />
+              {converting ? 'Converting...' : 'Convert to Invoice'}
             </Button>
           )}
           

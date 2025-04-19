@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '@/lib/db';
-import { expenses, expenseCategories } from '@/lib/db/schema';
+import { expenses, expenseCategories, vendors } from '@/lib/db/schema';
 import { and, eq, desc, asc, like, or, count, sql } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { expenseSchema } from '@/lib/validations/expense';
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate and parse the request body
-    const bodyValidation = createExpenseSchema.safeParse(body);
+    const bodyValidation = expenseSchema.safeParse(body);
     
     if (!bodyValidation.success) {
       return NextResponse.json(
@@ -172,6 +172,7 @@ export async function POST(request: NextRequest) {
     
     const {
       categoryId,
+      vendorId,
       vendor,
       description,
       amount,
@@ -207,13 +208,36 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Check if vendor exists and belongs to the company if vendorId is provided
+    if (vendorId) {
+      const existingVendor = await db
+        .select()
+        .from(vendors)
+        .where(
+          and(
+            eq(vendors.id, vendorId),
+            eq(vendors.companyId, companyId),
+            eq(vendors.softDelete, false)
+          )
+        )
+        .limit(1);
+      
+      if (existingVendor.length === 0) {
+        return NextResponse.json(
+          { message: 'Vendor not found or does not belong to your company' },
+          { status: 404 }
+        );
+      }
+    }
+    
     // Insert the new expense
     const [newExpense] = await db
       .insert(expenses)
       .values({
         companyId,
         categoryId: categoryId || null,
-        vendor,
+        vendorId: vendorId || null,
+        vendor: vendorId ? null : vendor, // Only save vendor name if vendorId is not provided
         description: description || null,
         amount: amount.toString(),
         currency,
@@ -245,9 +269,28 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Get vendor for response if vendorId is provided
+    let vendorInfo = null;
+    if (newExpense.vendorId) {
+      const vendorResult = await db
+        .select()
+        .from(vendors)
+        .where(eq(vendors.id, newExpense.vendorId))
+        .limit(1);
+      
+      if (vendorResult.length > 0) {
+        vendorInfo = {
+          id: vendorResult[0].id,
+          name: vendorResult[0].name,
+        };
+      }
+    }
+    
     return NextResponse.json({
       ...newExpense,
       category,
+      vendor: newExpense.vendor || (vendorInfo ? vendorInfo.name : null),
+      vendorDetails: vendorInfo,
     }, { status: 201 });
     
   } catch (error) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '@/lib/db';
-import { expenses, expenseCategories } from '@/lib/db/schema';
+import { expenses, expenseCategories, vendors } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { expenseSchema, expenseParamsSchema } from '@/lib/validations/expense';
@@ -60,12 +60,29 @@ export async function GET(
       );
     }
     
-    // Format response
+    // Get vendor information if vendorId is provided
     const { expense, category } = expenseResult[0];
+    let vendorInfo = null;
+    
+    if (expense.vendorId) {
+      const vendorResult = await db
+        .select()
+        .from(vendors)
+        .where(eq(vendors.id, expense.vendorId))
+        .limit(1);
+      
+      if (vendorResult.length > 0) {
+        vendorInfo = {
+          id: vendorResult[0].id,
+          name: vendorResult[0].name,
+        };
+      }
+    }
     
     return NextResponse.json({
       ...expense,
       category: category && category.id ? category : null,
+      vendorDetails: vendorInfo,
     });
     
   } catch (error) {
@@ -138,6 +155,7 @@ export async function PUT(
     
     const { 
       categoryId, 
+      vendorId,
       vendor, 
       description, 
       amount, 
@@ -171,12 +189,35 @@ export async function PUT(
       }
     }
     
+    // Check if vendor exists and belongs to the company (if provided)
+    if (vendorId) {
+      const existingVendor = await db
+        .select()
+        .from(vendors)
+        .where(
+          and(
+            eq(vendors.id, vendorId),
+            eq(vendors.companyId, companyId),
+            eq(vendors.softDelete, false)
+          )
+        )
+        .limit(1);
+      
+      if (existingVendor.length === 0) {
+        return NextResponse.json(
+          { message: 'Vendor not found or does not belong to your company' },
+          { status: 404 }
+        );
+      }
+    }
+    
     // Update the expense - format dates for database
     const [updatedExpense] = await db
       .update(expenses)
       .set({
         categoryId: categoryId || null,
-        vendor,
+        vendorId: vendorId || null,
+        vendor: vendorId ? null : vendor, // Only save vendor name if vendorId is not provided
         description: description || null,
         amount: amount.toString(),
         currency,
@@ -212,11 +253,29 @@ export async function PUT(
       }
     }
     
+    // Get vendor for response if vendorId is provided
+    let vendorInfo = null;
+    if (updatedExpense.vendorId) {
+      const vendorResult = await db
+        .select()
+        .from(vendors)
+        .where(eq(vendors.id, updatedExpense.vendorId))
+        .limit(1);
+      
+      if (vendorResult.length > 0) {
+        vendorInfo = {
+          id: vendorResult[0].id,
+          name: vendorResult[0].name,
+        };
+      }
+    }
+    
     return NextResponse.json({
       ...updatedExpense,
       category,
+      vendor: updatedExpense.vendor || (vendorInfo ? vendorInfo.name : null),
+      vendorDetails: vendorInfo,
     });
-    
   } catch (error) {
     console.error('Error updating expense:', error);
     return NextResponse.json(
