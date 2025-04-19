@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
 
     // Parse the request body
     const payload = await request.json();
-    console.log('Received Xendit webhook payload:', JSON.stringify(payload));
 
     // Only process invoice.paid events
     if (payload.event !== 'invoice.paid') {
@@ -69,7 +68,6 @@ export async function POST(request: NextRequest) {
       .limit(1);
     
     if (existingPayment.length > 0) {
-      console.log('Payment already processed for Xendit invoice ID:', payload.data.id);
       return NextResponse.json({ message: 'Payment already processed' }, { status: 200 });
     }
     

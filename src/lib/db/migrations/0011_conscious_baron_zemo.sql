@@ -1,0 +1,2 @@
+ALTER TABLE "quotes" ADD COLUMN "converted_to_invoice_id" integer;--> statement-breakpoint
+ALTER TABLE "quotes" ADD CONSTRAINT "quotes_converted_to_invoice_id_invoices_id_fk" FOREIGN KEY ("converted_to_invoice_id") REFERENCES "public"."invoices"("id") ON DELETE no action ON UPDATE no action;

@@ -140,6 +140,7 @@ export const quotes = pgTable('quotes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   acceptedAt: timestamp('accepted_at'),
   softDelete: boolean('soft_delete').default(false).notNull(),
+  convertedToInvoiceId: integer('converted_to_invoice_id').references(() => invoices.id),
 });
 
 // Define quote items table
@@ -166,6 +167,24 @@ export const expenseCategories = pgTable('expense_categories', {
   softDelete: boolean('soft_delete').default(false).notNull(),
 });
 
+// Define vendors table
+export const vendors = pgTable('vendors', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id')
+    .notNull()
+    .references(() => companies.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  contactName: varchar('contact_name', { length: 255 }),
+  email: varchar('email', { length: 255 }),
+  phone: varchar('phone', { length: 50 }),
+  address: text('address'),
+  website: varchar('website', { length: 255 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  softDelete: boolean('soft_delete').default(false).notNull(),
+});
+
 // Expenses Table
 export const expenses = pgTable('expenses', {
   id: serial('id').primaryKey(),
@@ -174,6 +193,8 @@ export const expenses = pgTable('expenses', {
     .references(() => companies.id),
   categoryId: integer('category_id')
     .references(() => expenseCategories.id),
+  vendorId: integer('vendor_id')
+    .references(() => vendors.id),
   vendor: varchar('vendor', { length: 255 }),
   description: text('description'),
   amount: varchar('amount', { length: 20 }).notNull(),
@@ -434,6 +455,10 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
     fields: [expenses.categoryId],
     references: [expenseCategories.id],
   }),
+  vendor: one(vendors, {
+    fields: [expenses.vendorId],
+    references: [vendors.id],
+  }),
 }));
 
 // Income Categories relationships
@@ -552,4 +577,9 @@ export const companyInvitationsRelations = relations(companyInvitations, ({ one 
     fields: [companyInvitations.companyId],
     references: [companies.id],
   }),
+}));
+
+// Define vendors relations
+export const vendorsRelations = relations(vendors, ({ many }) => ({
+  expenses: many(expenses),
 }));

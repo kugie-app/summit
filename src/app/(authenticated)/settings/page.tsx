@@ -319,9 +319,9 @@ export default function SettingsPage() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
       
-      <Tabs defaultValue="notifications" className="space-y-6">
+      <Tabs defaultValue="team" className="space-y-6">
         <TabsList className="mb-4">
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
+          {/* <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             <span>Notifications</span>
           </TabsTrigger>
@@ -332,24 +332,24 @@ export default function SettingsPage() {
           <TabsTrigger value="account" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span>Account</span>
-          </TabsTrigger>
+          </TabsTrigger> */}
           {session?.user?.permissions?.['users.view'] && (
             <TabsTrigger value="team" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span>Team</span>
             </TabsTrigger>
           )}
-          <TabsTrigger value="billing" className="flex items-center gap-2">
+          {/* <TabsTrigger value="billing" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             <span>Billing</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             <span>Security</span>
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
         
-        <TabsContent value="notifications">
+        {/* <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
@@ -496,7 +496,7 @@ export default function SettingsPage() {
               </p>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
         
         {session?.user?.permissions?.['users.view'] && (
           <TabsContent value="team">
@@ -816,7 +816,7 @@ export default function SettingsPage() {
           </TabsContent>
         )}
         
-        <TabsContent value="billing">
+        {/* <TabsContent value="billing">
           <Card>
             <CardHeader>
               <CardTitle>Billing and Subscription</CardTitle>
@@ -852,7 +852,7 @@ export default function SettingsPage() {
               </p>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );

@@ -266,15 +266,6 @@ export function InvoiceForm({ initialData, onSuccess, onCancel }: InvoiceFormPro
         items: formattedItems,
       };
       
-      // Debug logged to help diagnose any further validation issues
-      console.log("Submitting data:", JSON.stringify(dataToSubmit, null, 2));
-      console.log("Item types:", formattedItems.map(item => ({
-        description: typeof item.description,
-        quantity: typeof item.quantity,
-        unitPrice: typeof item.unitPrice,
-        amount: typeof item.amount
-      })));
-      
       const url = isEditing 
         ? `/api/invoices/${initialData!.id}` 
         : '/api/invoices';

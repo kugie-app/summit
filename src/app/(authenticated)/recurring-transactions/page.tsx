@@ -38,8 +38,23 @@ interface RecurringIncome {
   amount: string;
   currency: string;
   incomeDate: string;
-  nextDueDate: string;
+  nextDueDate: string | null;
   recurring: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  category: { id: number; name: string } | null;
+  client: { id: number; name: string } | null;
+}
+
+interface ApiIncomeResponse {
+  income: {
+    id: number;
+    source: string;
+    description: string | null;
+    amount: string;
+    currency: string;
+    incomeDate: string;
+    nextDueDate: string | null;
+    recurring: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  };
   category: { id: number; name: string } | null;
   client: { id: number; name: string } | null;
 }
@@ -60,7 +75,8 @@ export default function RecurringTransactionsPage() {
   };
   
   // Format date
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
     return format(new Date(dateString), 'MMM dd, yyyy');
   };
   
@@ -90,8 +106,29 @@ export default function RecurringTransactionsPage() {
       if (!incomeRes.ok) throw new Error('Failed to fetch recurring income');
       const incomeData = await incomeRes.json();
       
+      // Process expenses data
       setExpenses(expensesData.data || []);
-      setIncome(incomeData.data || []);
+      
+      // Process income data
+      if (incomeData && incomeData.data) {
+        // Transform the income data to match the expected format
+        const formattedIncome = incomeData.data.map((item: ApiIncomeResponse) => ({
+          id: item.income.id,
+          source: item.income.source,
+          description: item.income.description,
+          amount: item.income.amount,
+          currency: item.income.currency,
+          incomeDate: item.income.incomeDate,
+          nextDueDate: item.income.nextDueDate,
+          recurring: item.income.recurring,
+          category: item.category,
+          client: item.client
+        }));
+        
+        setIncome(formattedIncome);
+      } else {
+        setIncome([]);
+      }
     } catch (error) {
       console.error('Error fetching recurring transactions:', error);
       toast.error('Failed to load recurring transactions');
@@ -213,10 +250,10 @@ export default function RecurringTransactionsPage() {
                         <TableCell>
                           <Badge variant="outline" className={getFrequencyColor(item.recurring)}>
                             <RefreshCw className="h-3 w-3 mr-1 inline" />
-                            {item.recurring?.charAt(0).toUpperCase() + item.recurring?.slice(1)}
+                            {item.recurring.charAt(0).toUpperCase() + item.recurring.slice(1)}
                           </Badge>
                         </TableCell>
-                        <TableCell>{item.nextDueDate ? formatDate(item.nextDueDate) : 'N/A'}</TableCell>
+                        <TableCell>{formatDate(item.nextDueDate)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

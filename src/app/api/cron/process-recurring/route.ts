@@ -17,8 +17,6 @@ export async function POST(request: NextRequest) {
     // Process all recurring items
     const result = await processAllRecurringItems();
     
-    console.log(`Processed ${result.total} recurring items: ${result.invoices} invoices, ${result.expenses} expenses, ${result.income} income items`);
-    
     return NextResponse.json({
       message: 'Recurring items processed successfully',
       result,

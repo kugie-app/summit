@@ -20,7 +20,8 @@ export type RecurringOption = z.infer<typeof recurringOptionEnum>;
 export const expenseSchema = z.object({
   id: z.number().optional(), // Optional for creation, required for updates
   categoryId: z.number().optional(),
-  vendor: z.string().min(1, 'Vendor name is required'),
+  vendorId: z.number().optional(),
+  vendor: z.string().min(1, 'Vendor name is required').optional(),
   description: z.string().optional(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Amount must be a valid currency value'),
   currency: z.string().default('IDR'),
@@ -31,7 +32,16 @@ export const expenseSchema = z.object({
   status: expenseStatusEnum.default('pending'),
   recurring: recurringOptionEnum.default('none'),
   nextDueDate: z.coerce.date().optional().nullable(),
-});
+}).refine(
+  (data) => {
+    // Either vendorId or vendor must be provided
+    return !!data.vendorId || !!data.vendor;
+  },
+  {
+    message: 'Either vendor name or vendor selection is required',
+    path: ['vendor'],
+  }
+);
 
 export type ExpenseFormValues = z.infer<typeof expenseSchema>;
 

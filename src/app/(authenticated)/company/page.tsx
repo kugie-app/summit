@@ -77,8 +77,6 @@ export default function CompanyPage() {
     setIsLoading(true);
     
     try {
-      // Here you would typically make an API call to save the company data
-      console.log(data);
       toast.success('Company information updated', {
         description: 'Your company details have been saved successfully.'
       });

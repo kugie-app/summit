@@ -66,7 +66,6 @@ export const processRecurringInvoices = async () => {
     });
     
     const invoicesToProcess = Array.from(invoiceMap.values());
-    console.log(`Found ${invoicesToProcess.length} recurring invoices due for processing`);
     
     let processed = 0;
     
@@ -136,7 +135,6 @@ export const processRecurringInvoices = async () => {
       }
     }
     
-    console.log(`Successfully processed ${processed} recurring invoices`);
     return { processed };
   } catch (error) {
     console.error('Error processing recurring invoices:', error);
@@ -167,7 +165,6 @@ export const processRecurringExpenses = async () => {
         )
       );
     
-    console.log(`Found ${dueExpenses.length} recurring expenses due for processing`);
     
     let processed = 0;
     
@@ -212,7 +209,6 @@ export const processRecurringExpenses = async () => {
       }
     }
     
-    console.log(`Successfully processed ${processed} recurring expenses`);
     return { processed };
   } catch (error) {
     console.error('Error processing recurring expenses:', error);
@@ -243,7 +239,6 @@ export const processRecurringIncome = async () => {
         )
       );
     
-    console.log(`Found ${dueIncome.length} recurring income due for processing`);
     
     let processed = 0;
     
@@ -289,7 +284,6 @@ export const processRecurringIncome = async () => {
       }
     }
     
-    console.log(`Successfully processed ${processed} recurring income items`);
     return { processed };
   } catch (error) {
     console.error('Error processing recurring income:', error);

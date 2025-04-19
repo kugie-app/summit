@@ -14,7 +14,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 const expenseSchema = z.object({
-  vendor: z.string().min(1, "Vendor is required"),
+  vendorId: z.string().optional(),
+  vendor: z.string().min(1, "Vendor is required").optional(),
   description: z.string().optional(),
   amount: z.string().min(1, "Amount is required"),
   currency: z.string().default("USD"),
@@ -23,11 +24,22 @@ const expenseSchema = z.object({
   status: z.enum(["pending", "approved", "rejected"]).default("pending"),
   recurring: z.enum(["none", "daily", "weekly", "monthly", "yearly"]).default("none"),
   nextDueDate: z.string().optional(),
+}).refine(data => {
+  // Either vendorId or vendor must be provided
+  return !!data.vendorId || !!data.vendor;
+}, {
+  message: "Either vendor name or vendor selection is required",
+  path: ["vendorId"]
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
 type Category = {
+  id: number;
+  name: string;
+};
+
+type Vendor = {
   id: number;
   name: string;
 };
@@ -43,6 +55,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
   
@@ -55,6 +68,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
     formState: { errors },
   } = useForm<ExpenseFormValues>({
     defaultValues: {
+      vendorId: "",
       vendor: "",
       description: "",
       amount: "",
@@ -68,14 +82,29 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
   });
   
   const recurringValue = watch("recurring");
+  const vendorIdValue = watch("vendorId");
   
   useEffect(() => {
     fetchCategories();
+    fetchVendors();
     
     if (isEditing) {
       fetchExpense();
     }
   }, [isEditing, expenseId]);
+  
+  const fetchVendors = async () => {
+    try {
+      const response = await fetch("/api/vendors");
+      if (!response.ok) throw new Error("Failed to fetch vendors");
+      
+      const data = await response.json();
+      setVendors(data.data || []);
+    } catch (error) {
+      console.error("Error fetching vendors:", error);
+      toast.error("Failed to load vendors");
+    }
+  };
   
   const fetchCategories = async () => {
     try {
@@ -99,7 +128,8 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       const data = await response.json();
       
       // Populate form with expense data
-      setValue("vendor", data.vendor);
+      setValue("vendorId", data.vendorId ? String(data.vendorId) : "");
+      setValue("vendor", data.vendor || "");
       setValue("description", data.description || "");
       setValue("amount", data.amount);
       setValue("currency", data.currency);
@@ -162,6 +192,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       
       const expenseData = {
         ...data,
+        vendorId: data.vendorId ? parseInt(data.vendorId) : null,
         categoryId: data.categoryId ? parseInt(data.categoryId) : null,
         receiptUrl,
         // Only include nextDueDate if recurring is not "none"
@@ -217,20 +248,41 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* Vendor */}
+              {/* Vendor Selection */}
               <div className="space-y-2">
-                <Label htmlFor="vendor">
+                <Label htmlFor="vendorId">
                   Vendor <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="vendor"
-                  {...register("vendor")}
-                  placeholder="Vendor or payee name"
-                />
-                {errors.vendor && (
-                  <p className="text-sm text-red-500">{errors.vendor.message}</p>
-                )}
+                <select
+                  id="vendorId"
+                  {...register("vendorId")}
+                  className="w-full border rounded p-2"
+                >
+                  <option value="">Select a vendor</option>
+                  {vendors.map((vendor) => (
+                    <option key={vendor.id} value={vendor.id}>
+                      {vendor.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+              
+              {/* Manual Vendor Entry (only if no vendor selected) */}
+              {!vendorIdValue && (
+                <div className="space-y-2">
+                  <Label htmlFor="vendor">
+                    Or Enter Vendor Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="vendor"
+                    {...register("vendor")}
+                    placeholder="Enter vendor name manually"
+                  />
+                  {errors.vendor && (
+                    <p className="text-sm text-red-500">{errors.vendor.message}</p>
+                  )}
+                </div>
+              )}
               
               {/* Amount */}
               <div className="space-y-2">
@@ -399,7 +451,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
                     {isEditing ? "Updating..." : "Creating..."}
                   </>
                 ) : (
-                  <>{isEditing ? "Update" : "Create"} Expense</>
+                  <>{isEditing ? "Update Expense" : "Create Expense"}</>
                 )}
               </Button>
             </div>

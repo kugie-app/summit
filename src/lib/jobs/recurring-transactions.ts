@@ -178,7 +178,6 @@ export async function processRecurringTransactions(): Promise<{
   timestamp: string;
 }> {
   const startTime = new Date();
-  console.log(`[${format(startTime, 'yyyy-MM-dd HH:mm:ss')}] Starting recurring transactions job...`);
   
   try {
     // Process recurring expenses and income
@@ -186,8 +185,6 @@ export async function processRecurringTransactions(): Promise<{
     const incomeProcessed = await processRecurringIncome();
     
     const endTime = new Date();
-    console.log(`[${format(endTime, 'yyyy-MM-dd HH:mm:ss')}] Completed recurring transactions job.`);
-    console.log(`Processed ${expensesProcessed} recurring expenses and ${incomeProcessed} recurring income entries.`);
     
     return {
       expensesProcessed,
