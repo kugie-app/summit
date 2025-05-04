@@ -63,6 +63,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import CompanySettings from '@/components/settings/CompanySettings';
 
 // Form validation schema for inviting users
 const inviteFormSchema = z.object({
@@ -339,6 +340,10 @@ export default function SettingsPage() {
               <span>Team</span>
             </TabsTrigger>
           )}
+          <TabsTrigger value="company" className="flex items-center gap-2">
+            <SettingsIcon className="h-4 w-4" />
+            <span>Company</span>
+          </TabsTrigger>
           {/* <TabsTrigger value="billing" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             <span>Billing</span>
@@ -815,18 +820,22 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
         )}
+
+        <TabsContent value="company">
+          <CompanySettings />
+        </TabsContent>
         
         {/* <TabsContent value="billing">
           <Card>
             <CardHeader>
-              <CardTitle>Billing and Subscription</CardTitle>
+              <CardTitle>Billing Information</CardTitle>
               <CardDescription>
-                Manage your subscription, billing information, and payment methods.
+                Manage your subscription and billing details.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                The billing section will allow users to view their subscription details, update payment methods, and access invoices.
+                The billing section will allow users to view and update their subscription plans, payment methods, and billing history.
               </p>
               <p className="text-sm text-muted-foreground mt-2">
                 This section is currently being developed and will be available soon.
@@ -840,12 +849,12 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Security Settings</CardTitle>
               <CardDescription>
-                Manage security options like two-factor authentication and session management.
+                Secure your account with additional security layers.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                The security settings section will allow users to enable two-factor authentication, manage active sessions, and review security logs.
+                The security section will allow users to set up two-factor authentication, manage connected devices, and review login history.
               </p>
               <p className="text-sm text-muted-foreground mt-2">
                 This section is currently being developed and will be available soon.

@@ -4,36 +4,29 @@ import { authOptions } from '@/lib/auth/options';
 import { db } from '@/lib/db';
 import { invoices, invoiceItems, clients, companies } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { InvoicePDF } from '@/components/pdf/InvoicePDF';
 import { renderToBuffer } from '@/lib/pdf';
+import { InvoicePDF } from '@/components/pdf/InvoicePDF';
+import { getPresignedUrl } from '@/lib/minio';
 
-// GET /api/invoices/[invoiceId]/pdf - Generate PDF for a specific invoice
+// GET /api/invoices/[invoiceId]/pdf - Generate PDF for an invoice
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ invoiceId: string }> }
 ) {
   try {
-    const { invoiceId } = await params;
-    const id = parseInt(invoiceId);
-
-    // Check authorization
     const session = await getServerSession(authOptions);
+    
     if (!session?.user || !session.user.companyId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     const companyId = parseInt(session.user.companyId);
+    const { invoiceId } = await params;
 
-    // Get invoice with client and company data
-    const [invoiceData] = await db
-      .select({
-        invoice: invoices,
-        client: clients,
-        company: companies,
-      })
+    // Get invoice data
+    const [invoice] = await db
+      .select()
       .from(invoices)
-      .leftJoin(clients, eq(invoices.clientId, clients.id))
-      .leftJoin(companies, eq(invoices.companyId, companies.id))
       .where(
         and(
           eq(invoices.id, parseInt(invoiceId)),
@@ -42,7 +35,7 @@ export async function GET(
         )
       );
 
-    if (!invoiceData) {
+    if (!invoice) {
       return NextResponse.json({ message: 'Invoice not found' }, { status: 404 });
     }
 
@@ -50,27 +43,64 @@ export async function GET(
     const items = await db
       .select()
       .from(invoiceItems)
-      .where(eq(invoiceItems.invoiceId, id));
+      .where(eq(invoiceItems.invoiceId, parseInt(invoiceId)));
 
-    // Format data for PDF generation
-    const invoice = {
-      ...invoiceData.invoice,
-      client: invoiceData.client,
-      company: invoiceData.company,
-      items,
+    // Get client details
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, invoice.clientId));
+
+    // Get company details
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId));
+
+    // Prepare data for PDF
+    const pdfData = {
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      subtotal: invoice.subtotal,
+      tax: invoice.tax,
+      total: invoice.total,
+      notes: invoice.notes,
+      currency: invoice.currency || company.defaultCurrency,
+      items: items.map(item => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount: item.amount
+      })),
+      client: {
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        address: client.address
+      },
+      company: {
+        name: company.name,
+        address: company.address,
+        defaultCurrency: company.defaultCurrency,
+        logoUrl: company.logoUrl ? await getPresignedUrl(company.logoUrl) : null,
+        bankAccount: company.bankAccount
+      }
     };
 
     // Generate PDF
-    const pdfBuffer = await renderToBuffer(InvoicePDF, { invoice });
+    const pdfBuffer = await renderToBuffer(InvoicePDF, { invoice: pdfData });
 
-    // Set response headers for PDF download
-    const headers = new Headers();
-    headers.set('Content-Type', 'application/pdf');
-    headers.set('Content-Disposition', `inline; filename="invoice-${invoiceId}.pdf"`);
-
+    // Send PDF as response
     return new NextResponse(pdfBuffer, {
-      status: 200,
-      headers,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`,
+      },
     });
   } catch (error) {
     console.error('Error generating invoice PDF:', error);

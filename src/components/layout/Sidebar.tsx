@@ -32,7 +32,6 @@ const navItems = [
   { label: 'Expenses', icon: Receipt, href: '/expenses', group: 'Transactions' },
   { label: 'Recurring', icon: RefreshCw, href: '/recurring-transactions', group: 'Transactions' },
   // { label: 'Reports', icon: LineChart, href: '/reports' },
-  // { label: 'Company', icon: Building, href: '/company' },
   { label: 'Settings', icon: Settings, href: '/settings', group: 'Settings' },
 ];
 

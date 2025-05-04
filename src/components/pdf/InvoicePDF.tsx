@@ -5,7 +5,8 @@ import {
   Text,
   View,
   StyleSheet,
-  PDFViewer
+  PDFViewer,
+  Image
 } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 
@@ -22,6 +23,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 30,
     fontFamily: 'Helvetica',
+    fontSize: 10,
   },
   section: {
     margin: 10,
@@ -34,24 +36,36 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flexDirection: 'column',
+    width: '50%',
   },
   headerRight: {
     flexDirection: 'column',
     alignItems: 'flex-end',
+    width: '50%',
+  },
+  logoContainer: {
+    marginBottom: 10,
+    maxWidth: 120,
+    maxHeight: 60,
+  },
+  logo: {
+    width: '100%',
+    maxHeight: 60,
+    objectFit: 'contain',
   },
   invoiceTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   label: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   value: {
-    fontSize: 12,
-    marginBottom: 10,
+    fontSize: 10,
+    marginBottom: 6,
   },
   addressBox: {
     borderWidth: 1,
@@ -62,23 +76,27 @@ const styles = StyleSheet.create({
   table: {
     display: 'flex',
     width: 'auto',
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
+    border: '1pt solid #EEEEEE',
     marginTop: 20,
     marginBottom: 20,
   },
   tableRow: {
     flexDirection: 'row',
+    borderBottom: '1pt solid #EEEEEE',
+  },
+  tableRowLast: {
+    flexDirection: 'row',
   },
   tableHeader: {
     backgroundColor: '#F9FAFB',
     fontWeight: 'bold',
-    padding: 5,
   },
   tableCell: {
     padding: 5,
-    borderTopWidth: 1,
-    borderColor: '#EEEEEE',
+  },
+  tableCellBordered: {
+    padding: 5,
+    borderRight: '1pt solid #EEEEEE',
   },
   col1: {
     width: '40%',
@@ -99,33 +117,51 @@ const styles = StyleSheet.create({
     width: '15%',
     textAlign: 'right',
   },
+  totalsContainer: {
+    marginTop: 10,
+    alignSelf: 'flex-end',
+    width: '40%',
+  },
   totalRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 10,
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  totalRowEmphasis: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 3,
+    marginBottom: 3,
+    paddingTop: 3,
+    borderTop: '1pt solid #EEEEEE',
   },
   totalLabel: {
-    width: '20%',
-    textAlign: 'right',
     fontWeight: 'bold',
-    paddingRight: 5,
   },
-  totalValue: {
-    width: '15%',
-    textAlign: 'right',
-    paddingRight: 5,
+  bankDetails: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 5,
+  },
+  bankDetailsTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   footer: {
     marginTop: 30,
+    paddingTop: 10,
+    borderTop: '1pt solid #EEEEEE',
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: 10,
     color: '#666666',
   },
   notes: {
     marginTop: 20,
     padding: 10,
     backgroundColor: '#F9FAFB',
-    fontSize: 12,
+    fontSize: 10,
   },
 });
 
@@ -141,6 +177,7 @@ interface InvoicePDFProps {
     tax: number | string;
     total: number | string;
     notes?: string;
+    currency?: string;
     client: {
       id: number;
       name: string;
@@ -160,27 +197,67 @@ interface InvoicePDFProps {
       email?: string;
       phone?: string;
       address?: string;
+      logoUrl?: string;
+      bankAccount?: string;
+      defaultCurrency?: string;
     };
   };
   preview?: boolean;
 }
 
-// Convert dates and numbers to proper format
+// Helper functions
 const formatDate = (date: string | Date) => {
-  return format(new Date(date), 'PP');
+  if (!date) return '';
+  return format(new Date(date), 'MMM dd, yyyy');
 };
 
-const formatCurrency = (amount: number | string) => {
-  return `$${Number(amount).toFixed(2)}`;
+const formatCurrency = (amount: string | number, currency: string = 'USD') => {
+  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numericAmount)) return `${currency} 0.00`;
+  
+  // Format based on currency
+  let formattedAmount: string;
+  
+  switch (currency) {
+    case 'IDR':
+      formattedAmount = new Intl.NumberFormat('id-ID', { 
+        style: 'currency', 
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(numericAmount);
+      break;
+    case 'EUR':
+      formattedAmount = new Intl.NumberFormat('de-DE', { 
+        style: 'currency', 
+        currency: 'EUR' 
+      }).format(numericAmount);
+      break;
+    default:
+      formattedAmount = new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: currency || 'USD' 
+      }).format(numericAmount);
+  }
+  
+  return formattedAmount;
 };
 
 // Component for creating PDF
 export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, preview = false }) => {
+  const currency = invoice.currency || invoice.company?.defaultCurrency || 'USD';
+  
   const document = (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
+            {invoice.company?.logoUrl && (
+              <View style={styles.logoContainer}>
+                <Image src={invoice.company.logoUrl} style={styles.logo} />
+              </View>
+            )}
             <Text style={styles.invoiceTitle}>INVOICE</Text>
             {invoice.company && (
               <>
@@ -200,7 +277,9 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, preview = false
           <View style={styles.headerRight}>
             <Text style={styles.label}>Invoice Number</Text>
             <Text style={styles.value}>{invoice.invoiceNumber}</Text>
-            <Text style={styles.label}>Date</Text>
+            <Text style={styles.label}>Status</Text>
+            <Text style={styles.value}>{invoice.status.toUpperCase()}</Text>
+            <Text style={styles.label}>Issue Date</Text>
             <Text style={styles.value}>{formatDate(invoice.issueDate)}</Text>
             <Text style={styles.label}>Due Date</Text>
             <Text style={styles.value}>{formatDate(invoice.dueDate)}</Text>
@@ -225,36 +304,60 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, preview = false
 
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={[styles.col1, styles.tableCell]}>Description</Text>
-            <Text style={[styles.col2, styles.tableCell]}>Quantity</Text>
-            <Text style={[styles.col3, styles.tableCell]}>Unit Price</Text>
-            <Text style={[styles.col4, styles.tableCell]}>Amount</Text>
+            <View style={[styles.tableCellBordered, styles.col1]}>
+              <Text>Description</Text>
+            </View>
+            <View style={[styles.tableCellBordered, styles.col2]}>
+              <Text>Quantity</Text>
+            </View>
+            <View style={[styles.tableCellBordered, styles.col3]}>
+              <Text>Unit Price</Text>
+            </View>
+            <View style={[styles.tableCell, styles.col4]}>
+              <Text>Amount</Text>
+            </View>
           </View>
           
-          {invoice.items.map((item) => (
-            <View key={item.id} style={styles.tableRow}>
-              <Text style={[styles.col1, styles.tableCell]}>{item.description}</Text>
-              <Text style={[styles.col2, styles.tableCell]}>{item.quantity}</Text>
-              <Text style={[styles.col3, styles.tableCell]}>{formatCurrency(item.unitPrice)}</Text>
-              <Text style={[styles.col4, styles.tableCell]}>{formatCurrency(item.amount)}</Text>
+          {invoice.items.map((item, index) => (
+            <View key={item.id} style={index === invoice.items.length - 1 ? styles.tableRowLast : styles.tableRow}>
+              <View style={[styles.tableCellBordered, styles.col1]}>
+                <Text>{item.description}</Text>
+              </View>
+              <View style={[styles.tableCellBordered, styles.col2]}>
+                <Text>{item.quantity}</Text>
+              </View>
+              <View style={[styles.tableCellBordered, styles.col3]}>
+                <Text>{formatCurrency(item.unitPrice, currency)}</Text>
+              </View>
+              <View style={[styles.tableCell, styles.col4]}>
+                <Text>{formatCurrency(item.amount, currency)}</Text>
+              </View>
             </View>
           ))}
         </View>
 
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Subtotal:</Text>
-          <Text style={styles.totalValue}>{formatCurrency(invoice.subtotal)}</Text>
+        <View style={styles.totalsContainer}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Subtotal:</Text>
+            <Text>{formatCurrency(invoice.subtotal, currency)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Tax:</Text>
+            <Text>{formatCurrency(invoice.tax, currency)}</Text>
+          </View>
+          <View style={styles.totalRowEmphasis}>
+            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalLabel}>{formatCurrency(invoice.total, currency)}</Text>
+          </View>
         </View>
 
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Tax:</Text>
-          <Text style={styles.totalValue}>{formatCurrency(invoice.tax)}</Text>
-        </View>
-
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalValue}>{formatCurrency(invoice.total)}</Text>
-        </View>
+        {invoice.company?.bankAccount && (
+          <View style={styles.bankDetails}>
+            <Text style={styles.bankDetailsTitle}>Payment Information</Text>
+            <Text style={styles.value}>Bank Account: {invoice.company.bankAccount}</Text>
+            <Text style={styles.value}>Please include the invoice number in your payment reference.</Text>
+          </View>
+        )}
 
         {invoice.notes && (
           <View style={styles.notes}>
@@ -272,6 +375,4 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, preview = false
 
   // Return the document, optionally wrapped in a viewer for preview
   return preview ? <PDFViewer width="100%" height="600px">{document}</PDFViewer> : document;
-};
-
-export default InvoicePDF; 
+}; 
