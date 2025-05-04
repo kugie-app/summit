@@ -1,10 +1,30 @@
 import { db } from '@/lib/db';
 import { invoices, clients, payments } from '@/lib/db/schema';
-import { and, eq, gte, lte, sql, count, sum, isNull, not } from 'drizzle-orm';
-import { format, subDays, parseISO } from 'date-fns';
+import { and, eq, gte, lte, sql, count, sum, isNull, not, lt } from 'drizzle-orm';
+import { format, subDays, parseISO, subMonths } from 'date-fns';
 
 // Get invoice summary for a company
-export const getInvoiceSummary = async (companyId: number) => {
+export const getInvoiceSummary = async (
+  companyId: number,
+  startDate?: string,
+  endDate?: string,
+  previousPeriodComparison = true
+) => {
+  // Base conditions that apply to all queries
+  let baseConditions = and(
+    eq(invoices.companyId, companyId),
+    eq(invoices.softDelete, false)
+  );
+
+  // Add date range conditions if provided
+  if (startDate && endDate) {
+    baseConditions = and(
+      baseConditions,
+      gte(invoices.issueDate, startDate),
+      lte(invoices.issueDate, endDate)
+    );
+  }
+
   // Get total invoices
   const [totalResult] = await db
     .select({
@@ -12,12 +32,7 @@ export const getInvoiceSummary = async (companyId: number) => {
       total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
     })
     .from(invoices)
-    .where(
-      and(
-        eq(invoices.companyId, companyId),
-        eq(invoices.softDelete, false)
-      )
-    );
+    .where(baseConditions);
 
   // Get total paid invoices
   const [paidResult] = await db
@@ -28,9 +43,8 @@ export const getInvoiceSummary = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        eq(invoices.status, 'paid'),
-        eq(invoices.softDelete, false)
+        baseConditions,
+        eq(invoices.status, 'paid')
       )
     );
 
@@ -43,9 +57,8 @@ export const getInvoiceSummary = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        eq(invoices.status, 'overdue'),
-        eq(invoices.softDelete, false)
+        baseConditions,
+        eq(invoices.status, 'overdue')
       )
     );
 
@@ -58,9 +71,8 @@ export const getInvoiceSummary = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        eq(invoices.status, 'sent'),
-        eq(invoices.softDelete, false)
+        baseConditions,
+        eq(invoices.status, 'sent')
       )
     );
 
@@ -73,11 +85,89 @@ export const getInvoiceSummary = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        eq(invoices.status, 'draft'),
-        eq(invoices.softDelete, false)
+        baseConditions,
+        eq(invoices.status, 'draft')
       )
     );
+
+  // Calculate trends if requested and if dates are provided
+  let trends = undefined;
+  
+  if (previousPeriodComparison && startDate && endDate) {
+    // Calculate the previous period (same duration as the selected period)
+    const selectedStartDate = new Date(startDate);
+    const selectedEndDate = new Date(endDate);
+    const periodDuration = selectedEndDate.getTime() - selectedStartDate.getTime();
+    
+    const previousPeriodEndDate = new Date(selectedStartDate);
+    previousPeriodEndDate.setTime(previousPeriodEndDate.getTime() - 1); // 1 ms before the current period starts
+    
+    const previousPeriodStartDate = new Date(previousPeriodEndDate);
+    previousPeriodStartDate.setTime(previousPeriodStartDate.getTime() - periodDuration);
+    
+    const formattedPrevStartDate = format(previousPeriodStartDate, 'yyyy-MM-dd');
+    const formattedPrevEndDate = format(previousPeriodEndDate, 'yyyy-MM-dd');
+    
+    // Get previous period paid invoices
+    const [prevPaidResult] = await db
+      .select({
+        count: count(),
+        total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.companyId, companyId),
+          eq(invoices.status, 'paid'),
+          gte(invoices.issueDate, formattedPrevStartDate),
+          lte(invoices.issueDate, formattedPrevEndDate),
+          eq(invoices.softDelete, false)
+        )
+      );
+    
+    // Get previous period overdue invoices
+    const [prevOverdueResult] = await db
+      .select({
+        count: count(),
+        total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.companyId, companyId),
+          eq(invoices.status, 'overdue'),
+          gte(invoices.issueDate, formattedPrevStartDate),
+          lte(invoices.issueDate, formattedPrevEndDate),
+          eq(invoices.softDelete, false)
+        )
+      );
+    
+    // Calculate percentage changes
+    const prevPaidTotal = Number(prevPaidResult?.total || 0);
+    const currentPaidTotal = Number(paidResult?.total || 0);
+    const paidChange = prevPaidTotal === 0 
+      ? (currentPaidTotal > 0 ? 100 : 0)
+      : ((currentPaidTotal - prevPaidTotal) / prevPaidTotal) * 100;
+    
+    const prevOverdueTotal = Number(prevOverdueResult?.total || 0);
+    const currentOverdueTotal = Number(overdueResult?.total || 0);
+    const overdueChange = prevOverdueTotal === 0
+      ? (currentOverdueTotal > 0 ? 100 : 0)
+      : ((currentOverdueTotal - prevOverdueTotal) / prevOverdueTotal) * 100;
+    
+    trends = {
+      paid: {
+        value: Math.abs(Math.round(paidChange * 10) / 10), // Round to 1 decimal place
+        label: "vs. previous period",
+        positive: paidChange >= 0
+      },
+      overdue: {
+        value: Math.abs(Math.round(overdueChange * 10) / 10), // Round to 1 decimal place
+        label: "vs. previous period",
+        positive: overdueChange <= 0 // For overdue, negative change is positive trend
+      }
+    };
+  }
 
   // Return the summary
   return {
@@ -101,6 +191,8 @@ export const getInvoiceSummary = async (companyId: number) => {
       count: Number(draftResult?.count || 0),
       total: Number(draftResult?.total || 0),
     },
+    trends,
+    dateRange: startDate && endDate ? { startDate, endDate } : undefined
   };
 };
 
@@ -132,11 +224,32 @@ export const getRecentInvoices = async (companyId: number, limit: number = 5) =>
 };
 
 // Get aging receivables report (0-30, 31-60, 61-90, 90+ days)
-export const getAgingReceivables = async (companyId: number) => {
+export const getAgingReceivables = async (
+  companyId: number,
+  startDate?: string,
+  endDate?: string
+) => {
   const today = new Date();
   const thirtyDaysAgo = format(subDays(today, 30), 'yyyy-MM-dd');
   const sixtyDaysAgo = format(subDays(today, 60), 'yyyy-MM-dd');
   const ninetyDaysAgo = format(subDays(today, 90), 'yyyy-MM-dd');
+
+  // Base conditions that apply to all queries
+  let baseConditions = and(
+    eq(invoices.companyId, companyId),
+    not(eq(invoices.status, 'paid')),
+    not(eq(invoices.status, 'draft')),
+    eq(invoices.softDelete, false)
+  );
+
+  // Add date range conditions if provided
+  if (startDate && endDate) {
+    baseConditions = and(
+      baseConditions,
+      gte(invoices.issueDate, startDate),
+      lte(invoices.issueDate, endDate)
+    );
+  }
 
   // Current (0-30 days)
   const [current] = await db
@@ -147,11 +260,8 @@ export const getAgingReceivables = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        not(eq(invoices.status, 'paid')),
-        not(eq(invoices.status, 'draft')),
-        gte(invoices.dueDate, thirtyDaysAgo),
-        eq(invoices.softDelete, false)
+        baseConditions,
+        gte(invoices.dueDate, thirtyDaysAgo)
       )
     );
   
@@ -164,12 +274,9 @@ export const getAgingReceivables = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        not(eq(invoices.status, 'paid')),
-        not(eq(invoices.status, 'draft')),
+        baseConditions,
         gte(invoices.dueDate, sixtyDaysAgo),
-        lte(invoices.dueDate, thirtyDaysAgo),
-        eq(invoices.softDelete, false)
+        lt(invoices.dueDate, thirtyDaysAgo)
       )
     );
   
@@ -182,12 +289,9 @@ export const getAgingReceivables = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        not(eq(invoices.status, 'paid')),
-        not(eq(invoices.status, 'draft')),
+        baseConditions,
         gte(invoices.dueDate, ninetyDaysAgo),
-        lte(invoices.dueDate, sixtyDaysAgo),
-        eq(invoices.softDelete, false)
+        lt(invoices.dueDate, sixtyDaysAgo)
       )
     );
   
@@ -200,11 +304,8 @@ export const getAgingReceivables = async (companyId: number) => {
     .from(invoices)
     .where(
       and(
-        eq(invoices.companyId, companyId),
-        not(eq(invoices.status, 'paid')),
-        not(eq(invoices.status, 'draft')),
-        lte(invoices.dueDate, ninetyDaysAgo),
-        eq(invoices.softDelete, false)
+        baseConditions,
+        lt(invoices.dueDate, ninetyDaysAgo)
       )
     );
 
@@ -230,6 +331,7 @@ export const getAgingReceivables = async (companyId: number) => {
       count: Number(overNinety?.count || 0),
       total: Number(overNinety?.total || 0),
     },
+    dateRange: startDate && endDate ? { startDate, endDate } : undefined
   };
 };
 
