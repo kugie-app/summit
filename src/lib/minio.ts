@@ -31,13 +31,14 @@ export async function uploadFile(
   file: Buffer | Readable,
   originalName: string,
   contentType: string,
-  companyId: number
+  companyId: number,
+  folder: string = "receipts"
 ): Promise<string> {
   await ensureBucketExists();
 
   const fileExt = originalName.split('.').pop() || '';
   const uniqueId = uuidv4();
-  const fileName = `${companyId}/receipts/${uniqueId}.${fileExt}`;
+  const fileName = `${companyId}/${folder}/${uniqueId}.${fileExt}`;
 
   const metaData = {
     'Content-Type': contentType,
