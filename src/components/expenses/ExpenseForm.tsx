@@ -175,7 +175,8 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
       return data.url;
     } catch (error) {
       console.error("Error uploading receipt:", error);
-      throw error;
+      // Don't throw the error, just return null to make receipts optional
+      return null;
     }
   };
 
@@ -183,18 +184,22 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
     setIsSubmitting(true);
 
     try {
-      let receiptUrl = existingReceiptUrl;
+      // Start with null receipt URL if none exists
+      let receiptUrl = existingReceiptUrl || null;
 
-      // Upload receipt if a new file was selected
+      // Upload receipt only if a new file was selected
       if (receiptFile) {
-        receiptUrl = await uploadReceipt();
+        const uploadedUrl = await uploadReceipt();
+        if (uploadedUrl) {
+          receiptUrl = uploadedUrl;
+        }
       }
 
       const expenseData = {
         ...data,
         vendorId: data.vendorId ? parseInt(data.vendorId) : null,
         categoryId: data.categoryId ? parseInt(data.categoryId) : null,
-        receiptUrl,
+        receiptUrl, // This can be null if no receipt was uploaded
         // Only include nextDueDate if recurring is not "none"
         nextDueDate: data.recurring !== "none" ? data.nextDueDate : null,
       };
@@ -212,7 +217,30 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to save expense");
+        if (errorData.errors) {
+          // Format validation errors for better display
+          const errorMessages = [];
+          
+          // Check for field-specific errors
+          for (const field in errorData.errors) {
+            if (field !== '_errors' && errorData.errors[field]?._errors?.length > 0) {
+              errorMessages.push(`${field}: ${errorData.errors[field]._errors.join(', ')}`);
+            }
+          }
+          
+          // Check for general errors
+          if (errorData.errors._errors?.length > 0) {
+            errorMessages.push(...errorData.errors._errors);
+          }
+          
+          const errorMessage = errorMessages.length > 0 
+            ? `Validation errors: ${errorMessages.join('; ')}` 
+            : errorData.message || "Failed to save expense";
+            
+          throw new Error(errorMessage);
+        } else {
+          throw new Error(errorData.message || "Failed to save expense");
+        }
       }
 
       toast.success(`Expense ${isEditing ? "updated" : "created"} successfully`);
@@ -397,7 +425,7 @@ export default function ExpenseForm({ expenseId }: ExpenseFormProps) {
 
               {/* Receipt Upload */}
               <div className="space-y-2">
-                <Label htmlFor="receipt">Receipt</Label>
+                <Label htmlFor="receipt">Receipt (Optional)</Label>
                 <div className="flex items-center space-x-4">
                   <Input
                     id="receipt"

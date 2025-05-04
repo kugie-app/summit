@@ -28,7 +28,7 @@ export const expenseSchema = z.object({
   expenseDate: z.coerce.date({
     errorMap: () => ({ message: 'Please select a valid date' }),
   }),
-  receiptUrl: z.string().optional(),
+  receiptUrl: z.string().optional().nullable(),
   status: expenseStatusEnum.default('pending'),
   recurring: recurringOptionEnum.default('none'),
   nextDueDate: z.coerce.date().optional().nullable(),
