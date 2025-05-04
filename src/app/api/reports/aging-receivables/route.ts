@@ -15,8 +15,13 @@ export async function GET(request: NextRequest) {
     
     const companyId = parseInt(session.user.companyId);
     
+    // Get date range parameters
+    const searchParams = request.nextUrl.searchParams;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
+    
     // Get the aging receivables report
-    const report = await getAgingReceivables(companyId);
+    const report = await getAgingReceivables(companyId, startDate, endDate);
     
     return NextResponse.json(report);
     

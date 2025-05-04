@@ -15,8 +15,13 @@ export async function GET(request: NextRequest) {
     
     const companyId = parseInt(session.user.companyId);
     
+    // Get date range parameters
+    const searchParams = request.nextUrl.searchParams;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
+    
     // Get the invoice summary
-    const summary = await getInvoiceSummary(companyId);
+    const summary = await getInvoiceSummary(companyId, startDate, endDate);
     
     return NextResponse.json(summary);
     
