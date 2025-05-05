@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { format } from 'date-fns';
-import { ArrowLeft, Download, Send, Pencil, Trash2 } from 'lucide-react';
+import { format, isPast, addDays } from 'date-fns';
+import { ArrowLeft, Download, Send, Pencil, Trash2, CreditCard, ExternalLink, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table,
@@ -51,6 +51,8 @@ interface Invoice {
   createdAt: string;
   updatedAt: string;
   paidAt: string | null;
+  xenditInvoiceId?: string | null;
+  xenditInvoiceUrl?: string | null;
   client: {
     id: number;
     name: string;
@@ -66,6 +68,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [generatingPaymentLink, setGeneratingPaymentLink] = useState(false);
+  const [regeneratingPaymentLink, setRegeneratingPaymentLink] = useState(false);
   
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -220,6 +224,118 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
     }
   };
   
+  // Check if the payment link is expired based on due date
+  const isPaymentLinkExpired = (invoice: Invoice) => {
+    if (!invoice.dueDate) return false;
+    
+    // Define "expired" as either:
+    // 1. Due date is in the past, or
+    // 2. The invoice has status of 'overdue'
+    return isPast(new Date(invoice.dueDate)) || invoice.status === 'overdue';
+  };
+  
+  const handleGeneratePaymentLink = async () => {
+    if (!invoice) return;
+    
+    // Check if client has an email
+    if (!invoice.client?.email) {
+      toast.error('Client must have an email address to generate a payment link');
+      return;
+    }
+    
+    setGeneratingPaymentLink(true);
+    
+    try {
+      const { invoiceId } = await params;
+      const response = await fetch(`/api/invoices/${invoiceId}/create-xendit-invoice`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to generate payment link');
+      }
+      
+      const data = await response.json();
+      
+      // Update the invoice with the new Xendit information
+      setInvoice(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          xenditInvoiceId: data.invoice.xenditInvoiceId,
+          xenditInvoiceUrl: data.invoice.xenditInvoiceUrl,
+        };
+      });
+      
+      toast.success('Payment link generated successfully');
+      
+      // Optionally open the payment link in a new tab
+      if (data.xenditInvoiceUrl) {
+        window.open(data.xenditInvoiceUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error generating payment link:', error);
+      toast.error((error as Error).message || 'Failed to generate payment link');
+    } finally {
+      setGeneratingPaymentLink(false);
+    }
+  };
+  
+  const handleRegeneratePaymentLink = async () => {
+    if (!invoice) return;
+    
+    // Check if client has an email
+    if (!invoice.client?.email) {
+      toast.error('Client must have an email address to regenerate a payment link');
+      return;
+    }
+    
+    setRegeneratingPaymentLink(true);
+    
+    try {
+      const { invoiceId } = await params;
+      const response = await fetch(`/api/invoices/${invoiceId}/create-xendit-invoice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          regenerate: true
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to regenerate payment link');
+      }
+      
+      const data = await response.json();
+      
+      // Update the invoice with the new Xendit information
+      setInvoice(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          xenditInvoiceId: data.invoice.xenditInvoiceId,
+          xenditInvoiceUrl: data.invoice.xenditInvoiceUrl,
+        };
+      });
+      
+      toast.success('Payment link regenerated successfully');
+      
+      // Optionally open the payment link in a new tab
+      if (data.xenditInvoiceUrl) {
+        window.open(data.xenditInvoiceUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error regenerating payment link:', error);
+      toast.error((error as Error).message || 'Failed to regenerate payment link');
+    } finally {
+      setRegeneratingPaymentLink(false);
+    }
+  };
+  
   if (loading) {
     return (
       <div className="container mx-auto py-6">
@@ -296,9 +412,91 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           )}
           
           {invoice.status === 'sent' && (
-            <Button variant="outline" size="sm" onClick={() => handleStatusUpdate('paid')}>
-              Mark as Paid
-            </Button>
+            <>
+              <Button variant="outline" size="sm" onClick={() => handleStatusUpdate('paid')}>
+                Mark as Paid
+              </Button>
+              
+              {/* Payment link button */}
+              {invoice.xenditInvoiceUrl ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => invoice.xenditInvoiceUrl && window.open(invoice.xenditInvoiceUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Payment Link
+                  </Button>
+                  
+                  {/* Add Regenerate button if the payment link is expired */}
+                  {isPaymentLinkExpired(invoice) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleRegeneratePaymentLink}
+                      disabled={regeneratingPaymentLink}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${regeneratingPaymentLink ? 'animate-spin' : ''}`} />
+                      {regeneratingPaymentLink ? 'Regenerating...' : 'Regenerate Link'}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleGeneratePaymentLink}
+                  disabled={generatingPaymentLink || !invoice.client?.email}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {generatingPaymentLink ? 'Generating...' : 'Generate Payment Link'}
+                </Button>
+              )}
+            </>
+          )}
+          
+          {/* Add same functionality for overdue status */}
+          {invoice.status === 'overdue' && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => handleStatusUpdate('paid')}>
+                Mark as Paid
+              </Button>
+              
+              {invoice.xenditInvoiceUrl ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => invoice.xenditInvoiceUrl && window.open(invoice.xenditInvoiceUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Payment Link
+                  </Button>
+                  
+                  {/* Always show regenerate button for overdue invoices with payment links */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRegeneratePaymentLink}
+                    disabled={regeneratingPaymentLink}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${regeneratingPaymentLink ? 'animate-spin' : ''}`} />
+                    {regeneratingPaymentLink ? 'Regenerating...' : 'Regenerate Link'}
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleGeneratePaymentLink}
+                  disabled={generatingPaymentLink || !invoice.client?.email}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {generatingPaymentLink ? 'Generating...' : 'Generate Payment Link'}
+                </Button>
+              )}
+            </>
           )}
           
           <Button 
@@ -333,6 +531,44 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
           </AlertDialog>
         </div>
       </div>
+      
+      {/* If we have a payment link, show it in a card */}
+      {invoice.xenditInvoiceUrl && (
+        <Card className={`${isPaymentLinkExpired(invoice) ? 'bg-amber-50' : 'bg-slate-50'}`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Payment Link {isPaymentLinkExpired(invoice) ? '(Expired)' : 'Available'}
+                </h3>
+                <p className="text-muted-foreground">
+                  {isPaymentLinkExpired(invoice) 
+                    ? 'This payment link has expired. Please regenerate a new one.' 
+                    : 'Share this link with your client to receive payment online'}
+                </p>
+              </div>
+              {isPaymentLinkExpired(invoice) ? (
+                <Button 
+                  onClick={handleRegeneratePaymentLink}
+                  className="ml-4"
+                  disabled={regeneratingPaymentLink}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${regeneratingPaymentLink ? 'animate-spin' : ''}`} />
+                  {regeneratingPaymentLink ? 'Regenerating...' : 'Regenerate Link'}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => invoice.xenditInvoiceUrl && window.open(invoice.xenditInvoiceUrl, '_blank')}
+                  className="ml-4"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Payment Page
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>

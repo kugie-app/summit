@@ -6,7 +6,7 @@ import {
   View,
   StyleSheet,
   PDFViewer,
-  Image
+  Image as PDFImage
 } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 
@@ -255,7 +255,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ invoice, preview = false
           <View style={styles.headerLeft}>
             {invoice.company?.logoUrl && (
               <View style={styles.logoContainer}>
-                <Image src={invoice.company.logoUrl} style={styles.logo} />
+                <PDFImage src={invoice.company.logoUrl} style={styles.logo} />
               </View>
             )}
             <Text style={styles.invoiceTitle}>INVOICE</Text>
