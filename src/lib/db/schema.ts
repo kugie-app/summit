@@ -51,6 +51,7 @@ export const companies = pgTable('companies', {
   email: text('email'),
   phone: text('phone'),
   website: text('website'),
+  taxNumber: text('tax_number'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   softDelete: boolean('soft_delete').default(false).notNull(),

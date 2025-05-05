@@ -43,6 +43,7 @@ const companyFormSchema = z.object({
     message: 'Phone number is required.',
   }),
   taxId: z.string().optional(),
+  taxNumber: z.string().optional(),
   website: z.string().url({
     message: 'Please enter a valid URL.',
   }).optional(),
@@ -88,6 +89,7 @@ export default function CompanySettings() {
       email: '',
       phone: '',
       taxId: '',
+      taxNumber: '',
       website: '',
       bankAccount: '',
       defaultCurrency: 'USD',
@@ -120,6 +122,7 @@ export default function CompanySettings() {
           email: company.email || addressParts.email || '',
           phone: company.phone || addressParts.phone || '',
           taxId: addressParts.taxId || '',
+          taxNumber: company.taxNumber || '',
           website: company.website || addressParts.website || '',
           bankAccount: company.bankAccount || '',
           defaultCurrency: company.defaultCurrency || 'USD',
@@ -247,7 +250,8 @@ export default function CompanySettings() {
         bankAccount: data.bankAccount,
         email: data.email,
         phone: data.phone,
-        website: data.website
+        website: data.website,
+        taxNumber: data.taxNumber,
       };
       
       // Submit to API
@@ -355,6 +359,19 @@ export default function CompanySettings() {
                     <FormLabel>Tax ID / VAT Number</FormLabel>
                     <FormControl>
                       <Input placeholder="Tax ID / VAT Number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="taxNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tax Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your tax number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

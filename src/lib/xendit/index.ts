@@ -20,7 +20,7 @@ export const createXenditInvoice = async ({
   description,
   successRedirectUrl,
   failureRedirectUrl,
-  expiryDate,
+  invoiceDuration,
 }: {
   invoiceId: number;
   invoiceNumber: string;
@@ -31,24 +31,25 @@ export const createXenditInvoice = async ({
   description: string;
   successRedirectUrl?: string;
   failureRedirectUrl?: string;
-  expiryDate?: Date;
+  invoiceDuration?: number;
 }) => {
   try {
-    // Create a Xendit invoice - using any type to bypass type checking as Xendit's
-    // SDK types may not match their actual API
+    // Create a Xendit invoice - following the official SDK structure
+    // Use type assertion to handle discrepancy between SDK types and actual API
     const xenditInvoice = await (Invoice as any).createInvoice({
-      externalID: `inv-${invoiceId}-${invoiceNumber.replace(/[^a-zA-Z0-9]/g, '')}`, // Must be unique in Xendit's system
-      amount,
-      payerEmail: customerEmail,
-      description,
-      currency: currency || 'IDR', // Default to IDR if not specified
-      invoiceDuration: expiryDate ? Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 7, // Default 7 days or until expiry date
-      successRedirectURL: successRedirectUrl || process.env.NEXT_PUBLIC_URL + '/payment/success',
-      failureRedirectURL: failureRedirectUrl || process.env.NEXT_PUBLIC_URL + '/payment/failure',
-      // Optional fields
-      payerName: customerName,
-      reminderTime: 24, // Send reminder 24 hours before expiry
-      shouldSendEmail: true,
+      data: {
+        externalId: `inv-${invoiceId}-${invoiceNumber.replace(/[^a-zA-Z0-9]/g, '')}`,
+        amount,
+        payerEmail: customerEmail,
+        description,
+        currency: currency || 'IDR',
+        invoiceDuration: invoiceDuration,
+        successRedirectURL: successRedirectUrl || `${process.env.NEXT_PUBLIC_URL}/payment/success`,
+        failureRedirectURL: failureRedirectUrl || `${process.env.NEXT_PUBLIC_URL}/payment/failure`,
+        payerName: customerName,
+        reminderTime: 24,
+        shouldSendEmail: true,
+      }
     });
 
     return xenditInvoice;

@@ -16,6 +16,7 @@ const companyUpdateSchema = z.object({
   email: z.string().email('Invalid email format').optional().nullable(),
   phone: z.string().optional().nullable(),
   website: z.string().url('Invalid URL format').optional().nullable(),
+  taxNumber: z.string().optional().nullable(),
 });
 
 // GET /api/companies/current - Get the current user's company
@@ -75,6 +76,7 @@ export async function PUT(request: NextRequest) {
         email: validatedData.email || null,
         phone: validatedData.phone || null,
         website: validatedData.website || null,
+        taxNumber: validatedData.taxNumber || null,
         updatedAt: new Date(),
       })
       .where(eq(companies.id, companyId))
