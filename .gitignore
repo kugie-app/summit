@@ -1,5 +1,43 @@
+# Dependencies
 node_modules
+.pnpm-store
+.pnp.*
+.yarn/*
+
+# Next.js build output
+.next/
+out/
+
+# Test coverage reports
+coverage/
+.nyc_output/
+
+# Environment variables
 .env
 .env.local
-.next
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+
+# OS specific files
 .DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+dist/
+build/
+
+# Cache
+.cache/
