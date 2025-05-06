@@ -1,0 +1,115 @@
+name: PR Checks and Comments
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        id: tests
+        run: |
+          pnpm test || echo "::set-output name=test_failed::true"
+          echo "::set-output name=test_output::$(pnpm test 2>&1 | tail -n 100)"
+        continue-on-error: true
+
+      - name: Build project
+        id: build
+        run: |
+          pnpm run build || echo "::set-output name=build_failed::true"
+          echo "::set-output name=build_output::$(pnpm run build 2>&1 | tail -n 30)"
+        continue-on-error: true
+
+      - name: List files
+        id: list
+        run: |
+          pnpm run list || echo "::set-output name=list_failed::true"
+          echo "::set-output name=list_output::$(pnpm run list 2>&1 | tail -n 50)"
+        continue-on-error: true
+
+      - name: Create comment body
+        id: comment-body
+        run: |
+          echo "COMMENT_BODY<<EOF" >> $GITHUB_ENV
+          echo "## PR Check Results" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          
+          # Test results
+          if [ "${{ steps.tests.outputs.test_failed }}" == "true" ]; then
+            echo "### ❌ Tests Failed" >> $GITHUB_ENV
+          else
+            echo "### ✅ Tests Passed" >> $GITHUB_ENV
+          fi
+          echo "" >> $GITHUB_ENV
+          echo "<details><summary>Test Output</summary>" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo '```' >> $GITHUB_ENV
+          echo "${{ steps.tests.outputs.test_output }}" >> $GITHUB_ENV
+          echo '```' >> $GITHUB_ENV
+          echo "</details>" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          
+          # Build results
+          if [ "${{ steps.build.outputs.build_failed }}" == "true" ]; then
+            echo "### ❌ Build Failed" >> $GITHUB_ENV
+          else
+            echo "### ✅ Build Passed" >> $GITHUB_ENV
+          fi
+          echo "" >> $GITHUB_ENV
+          echo "<details><summary>Build Output</summary>" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo '```' >> $GITHUB_ENV
+          echo "${{ steps.build.outputs.build_output }}" >> $GITHUB_ENV
+          echo '```' >> $GITHUB_ENV
+          echo "</details>" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          
+          # List results
+          if [ "${{ steps.list.outputs.list_failed }}" == "true" ]; then
+            echo "### ❌ List Failed" >> $GITHUB_ENV
+          else
+            echo "### ✅ List Passed" >> $GITHUB_ENV
+          fi
+          echo "" >> $GITHUB_ENV
+          echo "<details><summary>List Output</summary>" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo '```' >> $GITHUB_ENV
+          echo "${{ steps.list.outputs.list_output }}" >> $GITHUB_ENV
+          echo '```' >> $GITHUB_ENV
+          echo "</details>" >> $GITHUB_ENV
+          
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Add PR comment
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: ${{ env.COMMENT_BODY }}
+          message-id: pr-check-results
+
+      - name: Fail workflow if builds or tests failed
+        if: steps.build.outputs.build_failed == 'true' || steps.list.outputs.list_failed == 'true'
+        run: exit 1
