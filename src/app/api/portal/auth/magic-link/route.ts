@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
     const token = await saveLoginToken(clientData.id, email);
 
     // Create verification URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://summitfinance.app';
     const verificationUrl = `${baseUrl}/portal/verify?token=${token}`;
 
     // Send email
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@example.com',
+      from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL || 'kugie@summitfinance.app'}>`,
       to: email,
       subject: 'Sign in to Your Client Portal',
       react: MagicLinkEmail({

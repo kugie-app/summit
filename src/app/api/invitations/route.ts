@@ -150,16 +150,16 @@ export async function POST(request: NextRequest) {
       .where(eq(companies.id, companyId));
     
     // Send invitation email
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://summitfinance.app';
     const acceptUrl = `${baseUrl}/accept-invitation?token=${token}`;
 
-    const fromEmail = `${company?.name || 'Kugie Summit'} <${process.env.RESEND_FROM_EMAIL || 'summit@kugie.app'}>`;
+    const fromEmail = `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL || 'summit@kugie.app'}>`;
     const toEmail = email;
     
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: `Kugie Summit <${process.env.RESEND_FROM_EMAIL || 'summit@kugie.app'}>`,
-      to: email,
+      from: fromEmail,
+      to: toEmail,
       subject: `You've been invited to join ${company?.name || 'Kugie Summit'}`,
       react: InvitationEmail({
         inviterName: session.user.name || 'Team Admin',
@@ -172,7 +172,6 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error sending invitation email:', error);
-      // We still created the invitation, so we'll return success but log the email error
     }
     
     return NextResponse.json({

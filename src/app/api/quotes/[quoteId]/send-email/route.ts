@@ -74,7 +74,7 @@ export async function POST(
     }
 
     // Build URLs for the email
-    const baseUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://summitfinance.app';
     const viewUrl = `${baseUrl}/quotes/${quoteId}`;
     const downloadUrl = `${baseUrl}/api/quotes/${quoteId}/pdf`;
 
@@ -158,9 +158,9 @@ export async function POST(
 
     // Send the email using Resend
     const { data, error } = await resend.emails.send({
-      from: `Quote <${process.env.RESEND_FROM_EMAIL || 'quotes@example.com'}>`,
+      from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL || 'kugie@summitfinance.app'}>`,
       to: [quoteData.client.email],
-      subject: `Quote ${quoteData.quote.quoteNumber} from ${quoteData.company?.name || 'Your Company'}`,
+      subject: `Quote ${quoteData.quote.quoteNumber} from ${quoteData.company?.name || 'Summit Finance'}`,
       html: htmlContent,
     });
 
