@@ -74,7 +74,7 @@ export async function POST(
     }
 
     // Build URLs for the email
-    const baseUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+    const baseUrl = process.env.NEXT_PUBLIC_URL;
     const viewUrl = `${baseUrl}/portal/invoices/${invoiceId}`;
 
     // Create a simple HTML email template
@@ -158,9 +158,9 @@ export async function POST(
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: `${sender.name} <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+      from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL || 'invoice@summitfinance.app'}>`,
       to: [invoiceData.client.email],
-      subject: `Invoice ${invoiceData.invoice.invoiceNumber} from ${invoiceData.company?.name || 'Your Company'}`,
+      subject: `Invoice ${invoiceData.invoice.invoiceNumber} from ${invoiceData.company?.name || 'Summit Finance'}`,
       html: htmlContent,
       replyTo: sender.email,
     });

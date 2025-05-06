@@ -139,11 +139,11 @@ export async function POST(request: NextRequest) {
     const permissions = getUserPermissions(invitation.role);
     
     // Get the base URL for the app
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.com';
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://summitfinance.app';
     
     // Send welcome email
     const { error } = await resend.emails.send({
-      from: `${company?.name || 'Your Company'} <${process.env.RESEND_FROM_EMAIL || 'welcome@example.com'}>`,
+      from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL || 'kugie@summitfinance.app'}>`,
       to: invitation.email,
       subject: `Welcome to ${company?.name || 'Our Company'}`,
       html: `

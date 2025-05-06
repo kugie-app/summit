@@ -77,7 +77,7 @@ export async function DELETE(
     
     // Send cancellation email
     const { error } = await resend.emails.send({
-      from: `${company?.name || 'Your Company'} <${process.env.RESEND_FROM_EMAIL || 'invitations@example.com'}>`,
+      from: `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL || 'kugie@summitfinance.app'}>`,
       to: invitation.email,
       subject: `Invitation to ${company?.name || 'Our Company'} cancelled`,
       html: `
