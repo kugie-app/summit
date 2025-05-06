@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { formatCurrency, formatNumber, cn } from '@/lib/utils';
 import { StatCard } from '@/components/dashboard/StatCard';
-import ProfitLossChart from '@/components/dashboard/ProfitLossChart';
-import AgingReceivablesChart from '@/components/dashboard/AgingReceivablesChart';
+import { NewProfitLossChart } from '@/components/dashboard/NewProfitLossChart';
+import { VisitorsChart } from '@/components/dashboard/VisitorsChart';
+import { ExpensesChart } from '@/components/dashboard/ExpensesChart';
+import { NewAgingReceivablesChart } from '@/components/dashboard/NewAgingReceivablesChart';
 import { DollarSign, FileText, CreditCard, TrendingUp, TrendingDown, AlertTriangle, CalendarIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -28,6 +30,7 @@ const DashboardPage = () => {
   const [profitLossData, setProfitLossData] = useState<any>(null);
   const [invoiceSummary, setInvoiceSummary] = useState<any>(null);
   const [agingReceivables, setAgingReceivables] = useState<any>(null);
+  const [expensesData, setExpensesData] = useState<any>(null);
   
   // Date filter states
   const [dateRangeType, setDateRangeType] = useState(DATE_RANGES.LAST_6_MONTHS);
@@ -105,9 +108,14 @@ const DashboardPage = () => {
         const agingReceivablesResponse = await fetch(`/api/reports/aging-receivables${paramString}`);
         const agingReceivablesData = await agingReceivablesResponse.json();
 
+        // Fetch expense breakdown
+        const expensesResponse = await fetch(`/api/reports/expense-breakdown${paramString}`);
+        const expensesData = await expensesResponse.json();
+
         setProfitLossData(profitLossData);
         setInvoiceSummary(invoiceSummaryData);
         setAgingReceivables(agingReceivablesData);
+        setExpensesData(expensesData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -271,10 +279,14 @@ const DashboardPage = () => {
             </TabsList>
             
             <TabsContent value="financials" className="space-y-4">
-              {/* Profit/Loss Chart */}
+              {/* Profit/Loss Chart - Using new shadcn chart */}
               {profitLossData && profitLossData.months && (
                 <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                  <ProfitLossChart data={profitLossData.months} />
+                  <NewProfitLossChart 
+                    data={profitLossData.months} 
+                    startDate={startDate}
+                    endDate={endDate}
+                  />
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <StatCard
@@ -313,10 +325,14 @@ const DashboardPage = () => {
             </TabsContent>
             
             <TabsContent value="invoices" className="space-y-4">
-              {/* Aging Receivables */}
+              {/* Aging Receivables - Using new shadcn chart */}
               {agingReceivables && (
                 <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-                  <AgingReceivablesChart data={agingReceivables} />
+                  <NewAgingReceivablesChart 
+                    data={agingReceivables} 
+                    startDate={startDate}
+                    endDate={endDate}
+                  />
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <StatCard
@@ -345,8 +361,72 @@ const DashboardPage = () => {
             </TabsContent>
             
             <TabsContent value="expenses" className="space-y-4">
-              <div className="h-[400px] border rounded-lg flex items-center justify-center">
-                <p className="text-muted-foreground">Expense analytics will be available soon.</p>
+              {/* Expenses Chart - Using real data from API */}
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                <ExpensesChart 
+                  title="Expense Distribution"
+                  description={`Expense categories from ${format(startDate!, 'MMM d, yyyy')} to ${format(endDate!, 'MMM d, yyyy')}`}
+                  data={expensesData?.expensesByCategory}
+                  isLoading={isLoading}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {expensesData?.expensesByCategory && expensesData.expensesByCategory.length > 0 ? (
+                    <>
+                      <StatCard
+                        title="Largest Expense"
+                        value={expensesData.expensesByCategory[0].category}
+                        description={`${((expensesData.expensesByCategory[0].amount / expensesData.totalExpenses) * 100).toFixed(0)}% of total expenses`}
+                        icon={TrendingDown}
+                      />
+                      <StatCard
+                        title="Total Categories"
+                        value={expensesData.expensesByCategory.length.toString()}
+                        description="Active expense categories"
+                        icon={FileText}
+                      />
+                      <StatCard
+                        title="Monthly Average"
+                        value={formatCurrency(expensesData.totalExpenses / (expensesData.expensesByMonth?.length || 1))}
+                        description="Per month expense"
+                        icon={TrendingDown}
+                      />
+                      <StatCard
+                        title="Total Expenses"
+                        value={formatCurrency(expensesData.totalExpenses)}
+                        description="All categories"
+                        icon={TrendingDown}
+                      />
+                    </>
+                  ) : (
+                    // No expense data available
+                    <>
+                      <StatCard
+                        title="Largest Expense"
+                        value="N/A"
+                        description="No expense data"
+                        icon={TrendingDown}
+                      />
+                      <StatCard
+                        title="Total Categories"
+                        value="0"
+                        description="No active categories"
+                        icon={FileText}
+                      />
+                      <StatCard
+                        title="Monthly Average"
+                        value={formatCurrency(0)}
+                        description="No expense data"
+                        icon={TrendingDown}
+                      />
+                      <StatCard
+                        title="Total Expenses"
+                        value={formatCurrency(0)}
+                        description="No expense data"
+                        icon={TrendingDown}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>
