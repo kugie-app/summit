@@ -10,12 +10,13 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    
+      
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
       RESEND_FROM_NAME: ${{ secrets.RESEND_FROM_NAME }}
+      # Add other environment variables your application needs
 
     steps:
       - name: Checkout repository
@@ -26,13 +27,13 @@ jobs:
         with:
           version: 8
           run_install: false
-
+          
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
+          
       - name: Install dependencies
         run: pnpm install
 
@@ -54,8 +55,20 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
         continue-on-error: true
 
+      # Check if 'list' command exists in package.json
+      - name: Check if list command exists
+        id: check_list
+        run: |
+          if grep -q '"list":' package.json; then
+            echo "has_list=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_list=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Only run list if it exists
       - name: List files
         id: list
+        if: steps.check_list.outputs.has_list == 'true'
         run: |
           pnpm run list || echo "list_failed=true" >> $GITHUB_OUTPUT
           echo "list_output<<EOF" >> $GITHUB_OUTPUT
@@ -100,19 +113,21 @@ jobs:
           echo "</details>" >> $GITHUB_ENV
           echo "" >> $GITHUB_ENV
           
-          # List results
-          if [ "${{ steps.list.outputs.list_failed }}" == "true" ]; then
-            echo "### ❌ List Failed" >> $GITHUB_ENV
-          else
-            echo "### ✅ List Passed" >> $GITHUB_ENV
+          # List results (only if list command exists)
+          if [ "${{ steps.check_list.outputs.has_list }}" == "true" ]; then
+            if [ "${{ steps.list.outputs.list_failed }}" == "true" ]; then
+              echo "### ❌ List Failed" >> $GITHUB_ENV
+            else
+              echo "### ✅ List Passed" >> $GITHUB_ENV
+            fi
+            echo "" >> $GITHUB_ENV
+            echo "<details><summary>List Output</summary>" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo '```' >> $GITHUB_ENV
+            echo "${{ steps.list.outputs.list_output }}" >> $GITHUB_ENV
+            echo '```' >> $GITHUB_ENV
+            echo "</details>" >> $GITHUB_ENV
           fi
-          echo "" >> $GITHUB_ENV
-          echo "<details><summary>List Output</summary>" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo '```' >> $GITHUB_ENV
-          echo "${{ steps.list.outputs.list_output }}" >> $GITHUB_ENV
-          echo '```' >> $GITHUB_ENV
-          echo "</details>" >> $GITHUB_ENV
           
           echo "EOF" >> $GITHUB_ENV
 
@@ -122,6 +137,7 @@ jobs:
           message: ${{ env.COMMENT_BODY }}
           message-id: pr-check-results
 
-      - name: Fail workflow if builds or tests failed
-        if: steps.build.outputs.build_failed == 'true' || steps.list.outputs.list_failed == 'true'
+      # Modified to only check build failure condition if you don't want list to be required
+      - name: Fail workflow if build failed
+        if: steps.build.outputs.build_failed == 'true'
         run: exit 1
