@@ -75,9 +75,7 @@ export async function POST(
 
     // Build URLs for the email
     const baseUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
-    const viewUrl = `${baseUrl}/invoices/${invoiceId}`;
-    const downloadUrl = `${baseUrl}/api/invoices/${invoiceId}/pdf`;
-    const paymentUrl = `${baseUrl}/invoices/${invoiceId}/pay`; // If you implement payment functionality
+    const viewUrl = `${baseUrl}/portal/invoices/${invoiceId}`;
 
     // Create a simple HTML email template
     const formattedDate = (date: string | Date) => {
@@ -107,7 +105,7 @@ export async function POST(
             .details { background-color: #f9fafb; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
             .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
             .footer { margin-top: 30px; text-align: center; font-size: 14px; color: #666; }
-            .button { display: inline-block; background-color: #10B981; color: white; padding: 10px 20px; 
+            .button { display: inline-block; background-color: #000000; color: white; padding: 10px 20px; 
                      text-decoration: none; border-radius: 4px; margin: 0 10px; }
             .button.secondary { background-color: #34D399; }
             .button.tertiary { background-color: #3B82F6; }
@@ -144,8 +142,6 @@ export async function POST(
             
             <div class="buttons">
               <a href="${viewUrl}" class="button">View Invoice</a>
-              <a href="${downloadUrl}" class="button secondary">Download PDF</a>
-              ${paymentUrl ? `<a href="${paymentUrl}" class="button tertiary">Pay Now</a>` : ''}
             </div>
             
             <p>If you have any questions regarding this invoice, please don't hesitate to contact us.</p>

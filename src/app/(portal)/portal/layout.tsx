@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getClientSession } from '@/lib/auth/client/utils';
+import "../../globals.css";
 
 export const metadata: Metadata = {
   title: {
@@ -21,11 +22,11 @@ export default async function PortalLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       {isLoggedIn && (
-        <header className="bg-primary">
+        <header className="bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center">
-                <div className="text-white font-bold text-xl">Client Portal</div>
+                <div className="text-white font-bold text-xl">Summit Portal</div>
                 <nav className="ml-10 flex items-baseline space-x-4">
                   <Link
                     href="/portal/dashboard"

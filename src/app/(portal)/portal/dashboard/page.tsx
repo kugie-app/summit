@@ -59,7 +59,7 @@ export default async function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <button
+        {/* <button
           onClick={async () => {
             await fetch('/api/portal/auth/logout', { method: 'POST' });
             window.location.href = '/portal/login';
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
         >
           Sign Out
-        </button>
+        </button> */}
       </div>
 
       <div className="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
