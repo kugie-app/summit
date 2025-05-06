@@ -2,7 +2,7 @@
 <h1 align="center">Summit</h1>
 
 <p align="center">
-    Open Source Invoicing & Finance App. Created by [Kugie](https://www.kugie.app)
+    Open Source Invoicing & Finance App. Created by Kugie
 </p>
 
 <p align="center">
