@@ -1,6 +1,16 @@
-
 ![og-image-summit](https://github.com/user-attachments/assets/33ed60b2-606b-4b80-8526-9315517b4f92)
+<h1 align="center">Summit</h1>
 
+<p align="center">
+    Open Source Invoicing & Finance App. Created by [Kugie](https://www.kugie.app)
+</p>
+
+<p align="center">
+    <img src="https://img.shields.io/github/contributors/kugie-app/summit"/>
+    <img src="https://img.shields.io/github/actions/workflow/status/kugie-app/summit/main-build.yml"/>
+    <img src="https://img.shields.io/github/license/kugie-app/summit"/>
+    <img src="https://img.shields.io/github/stars/kugie-app/summit"/>
+</p>
 **Summit** is a modern, self-hostable invoicing and financial management application designed for freelancers, small businesses, and agencies. Built with Next.js, Drizzle ORM, and Tailwind CSS, it provides the essential tools to manage your finances efficiently.
 
 ---
