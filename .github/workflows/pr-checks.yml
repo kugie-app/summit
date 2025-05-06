@@ -10,10 +10,22 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+      RESEND_FROM_NAME: ${{ secrets.RESEND_FROM_NAME }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -21,34 +33,34 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-          run_install: false
-
       - name: Install dependencies
         run: pnpm install
 
       - name: Run tests
         id: tests
         run: |
-          pnpm test || echo "::set-output name=test_failed::true"
-          echo "::set-output name=test_output::$(pnpm test 2>&1 | tail -n 100)"
+          pnpm test || echo "test_failed=true" >> $GITHUB_OUTPUT
+          echo "test_output<<EOF" >> $GITHUB_OUTPUT
+          pnpm test 2>&1 | tail -n 100 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: Build project
         id: build
         run: |
-          pnpm run build || echo "::set-output name=build_failed::true"
-          echo "::set-output name=build_output::$(pnpm run build 2>&1 | tail -n 30)"
+          pnpm run build || echo "build_failed=true" >> $GITHUB_OUTPUT
+          echo "build_output<<EOF" >> $GITHUB_OUTPUT
+          pnpm run build 2>&1 | tail -n 30 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: List files
         id: list
         run: |
-          pnpm run list || echo "::set-output name=list_failed::true"
-          echo "::set-output name=list_output::$(pnpm run list 2>&1 | tail -n 50)"
+          pnpm run list || echo "list_failed=true" >> $GITHUB_OUTPUT
+          echo "list_output<<EOF" >> $GITHUB_OUTPUT
+          pnpm run list 2>&1 | tail -n 50 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         continue-on-error: true
 
       - name: Create comment body
