@@ -185,7 +185,7 @@ This project uses Drizzle ORM with PostgreSQL.
 
 Contributions are welcome! We appreciate any help, from bug fixes and feature enhancements to documentation improvements.
 
-Please read our [Contributing Guidelines](CONTRIBUTING.md) (Add this file if you have one) for details on our code of conduct and the process for submitting pull requests.
+Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
 You can also reach out to the maintainers at [Kugie.app](https://www.kugie.app/contact).
 
