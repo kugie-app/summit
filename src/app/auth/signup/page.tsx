@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { signIn } from 'next-auth/react';
+import { config } from '@/lib/config';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -32,6 +33,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function SignUpPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const isSignupDisabled = config.isSignupDisabled;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -44,6 +46,11 @@ export default function SignUpPage() {
   });
 
   async function onSubmit(values: FormValues) {
+    if (isSignupDisabled) {
+      toast.error('Signups are currently disabled');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -79,6 +86,29 @@ export default function SignUpPage() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (isSignupDisabled) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold">Signups Disabled</CardTitle>
+            <CardDescription>
+              Signups are currently disabled. Please contact the administrator.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mt-4 text-center text-sm">
+              Already have an account?{' '}
+              <Link href="/auth/signin" className="text-primary hover:underline">
+                Sign in
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { config } from '@/lib/config';
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -30,6 +31,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function SignInPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const isSignupDisabled = config.isSignupDisabled;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -116,12 +118,14 @@ export default function SignInPage() {
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/auth/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </div>
+          {!isSignupDisabled && (
+            <div className="mt-4 text-center text-sm">
+              Don&apos;t have an account?{' '}
+              <Link href="/auth/signup" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

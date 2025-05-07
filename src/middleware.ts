@@ -21,6 +21,22 @@ const publicPaths = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  // Block access to signup when disabled
+  if (process.env.NEXT_PUBLIC_DISABLE_SIGNUP === '1') {
+    // Block access to signup page
+    if (pathname === '/auth/signup') {
+      return NextResponse.redirect(new URL('/auth/signin', request.url));
+    }
+    
+    // Block access to registration API
+    if (pathname === '/api/auth/register') {
+      return NextResponse.json(
+        { message: 'Signups are currently disabled' },
+        { status: 403 }
+      );
+    }
+  }
+  
   // Check if the path is public or starts with one of the public paths
   if (publicPaths.some(path => pathname === path || pathname.startsWith(path))) {
     return NextResponse.next();

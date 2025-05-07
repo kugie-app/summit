@@ -4,6 +4,7 @@ import { hash } from 'bcrypt';
 import { db } from '@/lib/db';
 import { companies, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { config } from '@/lib/config';
 
 // Validation schema for registration
 const registerSchema = z.object({
@@ -15,6 +16,14 @@ const registerSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Check if signups are disabled
+    if (config.isSignupDisabled) {
+      return NextResponse.json(
+        { message: 'Signups are currently disabled' },
+        { status: 403 }
+      );
+    }
+    
     // Parse and validate the request body
     const body = await request.json();
     const validatedData = registerSchema.parse(body);

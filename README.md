@@ -178,6 +178,10 @@ NEXTAUTH_URL="http://localhost:3000" # Use your production URL in deployment
 # Generate a strong secret
 CLIENT_AUTH_SECRET="YOUR_STRONG_CLIENT_PORTAL_SECRET"
 
+# User Signup Control
+# Set to "1" to disable new user signups
+NEXT_PUBLIC_DISABLE_SIGNUP="0"
+
 # Email (Resend)
 RESEND_API_KEY="YOUR_RESEND_API_KEY"
 RESEND_FROM_EMAIL="you@yourdomain.com" # Email address verified with Resend
