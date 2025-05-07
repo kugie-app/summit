@@ -15,6 +15,7 @@ const publicPaths = [
   '/portal/login',
   '/portal/verify',
   '/api/portal/auth',
+  '/api/webhooks/xendit/payment',
 ];
 
 export async function middleware(request: NextRequest) {
