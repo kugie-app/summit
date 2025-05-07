@@ -12,6 +12,12 @@
     <img src="https://img.shields.io/github/stars/kugie-app/summit"/>
 </p>
 
+<p align="center">
+  <a href="https://railway.com/template/x5njSj?referralCode=D8ivdW">
+    <img src="https://railway.com/button.svg" alt="Deploy on Railway" />
+  </a>
+</p>
+
 **[Summit](https://summitfinance.app)** is a modern, self-hostable invoicing and financial management application designed for freelancers, small businesses, and agencies. Built with Next.js, Drizzle ORM, and Tailwind CSS, it provides the essential tools to manage your finances efficiently.
 
 ---
@@ -92,7 +98,7 @@ We use [Railway](https://railway.app/) for seamless deployment of the entire app
 
 This infrastructure setup provides a cost-effective, reliable deployment that scales with usage while keeping all components within the same platform for easier management.
 
-In the future, we're planning to have a railway template where you can one click deploy Summit to Railway.
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/x5njSj?referralCode=D8ivdW)
 
 ## 🔄 Webhook Integration
 
