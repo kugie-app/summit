@@ -11,7 +11,8 @@
     <img src="https://img.shields.io/github/license/kugie-app/summit"/>
     <img src="https://img.shields.io/github/stars/kugie-app/summit"/>
 </p>
-**Summit** is a modern, self-hostable invoicing and financial management application designed for freelancers, small businesses, and agencies. Built with Next.js, Drizzle ORM, and Tailwind CSS, it provides the essential tools to manage your finances efficiently.
+
+**[Summit](https://summitfinance.app)** is a modern, self-hostable invoicing and financial management application designed for freelancers, small businesses, and agencies. Built with Next.js, Drizzle ORM, and Tailwind CSS, it provides the essential tools to manage your finances efficiently.
 
 ---
 
@@ -77,6 +78,36 @@ Whether you want to fix a bug, add a feature, or improve documentation, feel fre
 *   **File Storage:** Minio (or any S3-compatible storage)
 *   **Validation:** Zod
 *   **Forms:** React Hook Form
+
+## 🚢 Deployment
+
+### How the Kugie Team Deploys Summit
+
+We use [Railway](https://railway.app/) for seamless deployment of the entire application stack:
+
+* **Main Application:** The Next.js application is deployed directly on Railway, which automatically handles builds and deployments from the GitHub repository.
+* **Database:** PostgreSQL is hosted as a Railway service, providing reliable database connectivity.
+* **MinIO Storage:** File storage for receipts and documents is also hosted on Railway, eliminating the need for external S3 providers.
+* **Webhook Processing:** For efficient webhook handling, the team uses Railway Functions with [Hono](https://hono.dev/) (a lightweight web framework). The webhook implementation can be found in the [xendit-webhook.js](xendit-webhook.js) file at the root of the project.
+
+This infrastructure setup provides a cost-effective, reliable deployment that scales with usage while keeping all components within the same platform for easier management.
+
+In the future, we're planning to have a railway template where you can one click deploy Summit to Railway.
+
+## 🔄 Webhook Integration
+
+### Xendit Payment Webhooks
+Summit is fully compatible with Xendit webhooks to automate your payment workflow:
+
+* **Automatic Invoice Updates:** When a payment is completed through Xendit, the webhook automatically updates the corresponding invoice status to "Paid" in your Summit dashboard.
+* **Real-time Slack Notifications:** Get instant notifications in your Slack workspace whenever a payment is received, keeping your team informed without manual checks.
+* **Secure Verification:** All incoming webhook requests are verified using Xendit's callback verification token to ensure data integrity and security.
+
+To set up Xendit webhooks:
+1. Configure your Xendit dashboard to point to your Summit instance's webhook endpoint (`/api/webhooks/xendit`)
+2. Ensure your `XENDIT_CALLBACK_VERIFICATION_TOKEN` is properly set in your environment variables
+3. Configure Slack notifications by adding your Slack webhook URL to the environment variables:
+
 
 ## 🏁 Getting Started
 
