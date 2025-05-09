@@ -23,6 +23,12 @@
 ---
 
 **Maintained by [Kugie.app](https://www.kugie.app)**
+<details>
+<summary>Background</summary>
+
+We've tried several tools including Akaunting (not familiar with PHP), InvoiceNinja (limited functionality), Crater, and Twenty CRM (consume too much CPU and RAM). We just want a tool that helps us create quotations, send invoices through email, and automate payments.
+
+</details>
 
 This open-source project is proudly maintained by the team at [Kugie.app](https://www.kugie.app). We believe in the power of open source and welcome contributions from the community!
 
@@ -32,7 +38,8 @@ Whether you want to fix a bug, add a feature, or improve documentation, feel fre
 *   Open an issue to discuss bugs or new features.
 *   [Contact us](https://www.kugie.app/contact) to talk about the project!
 
----
+## YouTube: Getting Started with Summit Finance
+[![Getting Started with Summit Finance](https://img.youtube.com/vi/6mJjokNKlq8/maxresdefault.jpg)](https://www.youtube.com/watch?v=6mJjokNKlq8)
 
 ## ✨ Key Features
 

@@ -59,7 +59,7 @@ app.post("/api/notify/invoice", async (c) => {
       case "PAID":
         headerText = "Payment Received!";
         headerEmoji = "🎉";
-        messageText = `Hi <!subteam^S08EKGKPHPV>, a payment has been successfully processed through Xendit!`;
+        messageText = `Hi, a payment has been successfully processed through Xendit!`;
         
         // Update invoice status by calling the internal API
         try {
