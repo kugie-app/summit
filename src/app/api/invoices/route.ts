@@ -1,16 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { z } from 'zod';
 import { db } from '@/lib/db';
 import { clients, invoices, invoiceItems } from '@/lib/db/schema';
-import { and, eq, desc, asc, like, or, count, inArray, sql } from 'drizzle-orm';
-import { authOptions } from '@/lib/auth/options';
-import { invoiceSchema, invoiceItemSchema } from '@/lib/validations/invoice';
-import { withAuth, getAuthInfo } from '@/lib/auth/getAuthInfo';
+import { and, eq, desc, asc, like, or, count, inArray } from 'drizzle-orm';
+import { invoiceSchema } from '@/lib/validations/invoice';
+import { withAuth } from '@/lib/auth/getAuthInfo';
+
+type InvoiceResponse = {
+  data: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+type ErrorResponse = {
+  message: string;
+  errors?: any;
+};
+
+type InvoiceDetailResponse = {
+  id: number;
+  companyId: number;
+  clientId: number;
+  invoiceNumber: string;
+  status: "draft" | "sent" | "paid" | "overdue" | "cancelled";
+  issueDate: string;
+  dueDate: string;
+  subtotal: string;
+  tax: string | null;
+  total: string;
+  notes: string | null;
+  createdAt: Date;
+  client: {
+    id: number;
+    name: string;
+    email: string | null;
+  };
+  items: any[];
+};
 
 // GET /api/invoices - List all invoices with pagination, sorting, and filtering
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (authInfo) => {
+  return withAuth<InvoiceResponse | ErrorResponse>(request, async (authInfo) => {
     try {
       const { companyId } = authInfo;
 
@@ -142,7 +173,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/invoices - Create a new invoice
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (authInfo) => {
+  return withAuth<InvoiceDetailResponse | ErrorResponse>(request, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       
@@ -158,7 +189,7 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      const { clientId, invoiceNumber, status, issueDate, dueDate, taxRate, notes, items } = validationResult.data;
+      const { clientId, invoiceNumber, status, issueDate, dueDate, tax: taxInput, notes, items } = validationResult.data;
       
       // Check if client exists and belongs to the company
       const existingClient = await db
@@ -200,8 +231,13 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Calculate subtotal, tax and total
-      const subtotal = items.reduce((sum, item) => sum + item.quantity * parseFloat(item.unitPrice), 0);
+      // Always calculate subtotal, tax and total from items regardless of what client sent
+      const subtotal = items.reduce((sum, item) => {
+        const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
+        const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+        return sum + (quantity * unitPrice);
+      }, 0);
+      const taxRate = typeof taxInput === 'string' ? parseFloat(taxInput) : (taxInput || 0);
       const tax = taxRate ? subtotal * (taxRate / 100) : 0;
       const total = subtotal + tax;
       
@@ -220,6 +256,7 @@ export async function POST(request: NextRequest) {
         issueDate: issueDateObj.toISOString(),
         dueDate: dueDateObj.toISOString(),
         subtotal: subtotal.toFixed(2),
+        taxRate: taxRate.toFixed(2),
         tax: tax.toFixed(2),
         total: total.toFixed(2),
         notes: notes || null,
@@ -234,14 +271,17 @@ export async function POST(request: NextRequest) {
       const createdItems = [];
       
       for (const item of items) {
-        const amount = item.quantity * parseFloat(item.unitPrice);
+        // Calculate amount server-side regardless of what client sent
+        const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
+        const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+        const amount = quantity * unitPrice;
 
         // Create SQL statement for each item to maintain consistent approach
         const newItem: typeof invoiceItems.$inferInsert = {
           invoiceId: insertResult[0].id,
           description: item.description,
-          quantity: item.quantity.toString(),
-          unitPrice: item.unitPrice.toString(),
+          quantity: quantity.toString(),
+          unitPrice: unitPrice.toString(),
           amount: amount.toString(),
           createdAt: new Date(),
           updatedAt: new Date(),

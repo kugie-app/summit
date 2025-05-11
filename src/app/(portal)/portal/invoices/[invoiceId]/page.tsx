@@ -38,6 +38,7 @@ export default async function InvoiceDetailPage({
       notes: invoices.notes,
       xenditInvoiceUrl: invoices.xenditInvoiceUrl,
       paidAt: invoices.paidAt,
+      taxRate: invoices.taxRate,
     })
     .from(invoices)
     .where(
@@ -154,7 +155,7 @@ export default async function InvoiceDetailPage({
                   </tr>
                   <tr>
                     <th colSpan={3} className="px-6 py-3 text-right text-sm font-medium text-gray-500">
-                      Tax
+                      Tax ({invoice.taxRate || '0'}%)
                     </th>
                     <td className="px-6 py-3 text-right text-sm text-gray-900">
                       {formatCurrency(Number(invoice.tax), invoice.currency)}

@@ -2,15 +2,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { db } from '@/lib/db';
-import { clients, quotes, quoteItems } from '@/lib/db/schema';
+import { clients, quotes, quoteItems, companies } from '@/lib/db/schema';
 import { and, eq, desc, asc, like, or, count, inArray, sql } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { quoteSchema, quoteItemSchema } from '@/lib/validations/quote';
 import { withAuth } from '@/lib/auth/getAuthInfo';
 
+type QuoteResponse = {
+  data: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+type ErrorResponse = {
+  message: string;
+  errors?: any;
+};
+
+type QuoteDetailResponse = {
+  id: number;
+  companyId: number;
+  clientId: number;
+  quoteNumber: string;
+  status: "draft" | "sent" | "accepted" | "rejected" | "expired";
+  issueDate: string;
+  expiryDate: string;
+  subtotal: string;
+  tax: string | null;
+  total: string;
+  notes: string | null;
+  createdAt: Date;
+  client: {
+    id: number;
+    name: string;
+    email: string | null;
+  };
+  items: any[];
+};
+
 // GET /api/quotes - List all quotes with pagination, sorting, and filtering
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (authInfo) => {
+  return withAuth<QuoteResponse | ErrorResponse>(request, async (authInfo) => {
     try {
       const { companyId } = authInfo;
 
@@ -101,6 +135,13 @@ export async function GET(request: NextRequest) {
         .from(quoteItems)
         .where(inArray(quoteItems.quoteId, quoteIds));
       
+      // Get company information
+      const company = await db
+        .select()
+        .from(companies)
+        .where(eq(companies.id, companyId))
+        .limit(1);
+      
       // Group items by quote ID
       const itemsByQuoteId: Record<number, any[]> = {};
       
@@ -118,6 +159,7 @@ export async function GET(request: NextRequest) {
         return {
           ...quote,
           client,
+          company: company[0],
           items: itemsByQuoteId[quote.id] || [],
         };
       });
@@ -142,7 +184,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/quotes - Create a new quote
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (authInfo) => {
+  return withAuth<QuoteDetailResponse | ErrorResponse>(request, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       
@@ -158,7 +200,7 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      const { clientId, quoteNumber, status, issueDate, expiryDate, taxRate, notes, items } = validationResult.data;
+      const { clientId, quoteNumber, status, issueDate, expiryDate, taxRate: taxRateInput, notes, items } = validationResult.data;
       
       // Check if client exists and belongs to the company
       const existingClient = await db
@@ -201,9 +243,14 @@ export async function POST(request: NextRequest) {
       }
       
       // Calculate subtotal, tax and total
-      const subtotal = items.reduce((sum, item) => sum + item.quantity * parseFloat(item.unitPrice), 0);
-      const tax = taxRate ? subtotal * (taxRate / 100) : 0;
-      const total = subtotal + tax;
+      const subtotal = items.reduce((sum, item) => {
+        const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
+        const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+        return sum + (quantity * unitPrice);
+      }, 0);
+      const taxRate = typeof taxRateInput === 'string' ? parseFloat(taxRateInput) : (taxRateInput || 0);
+      const taxAmount = taxRate ? subtotal * (taxRate / 100) : 0;
+      const total = subtotal + taxAmount;
       
       // Insert quote using a simple query approach
       const now = new Date();
@@ -214,10 +261,11 @@ export async function POST(request: NextRequest) {
         clientId,
         quoteNumber,
         status,
-        issueDate,
-        expiryDate,
+        issueDate: new Date(issueDate).toISOString(),
+        expiryDate: new Date(expiryDate).toISOString(),
         subtotal: subtotal.toString(),
-        tax: tax.toString(),
+        taxRate: taxRate.toString(),
+        tax: taxAmount.toString(),
         total: total.toString(),
         notes,
         createdAt: now,
@@ -231,13 +279,16 @@ export async function POST(request: NextRequest) {
       const createdItems = [];
       
       for (const item of items) {
-        const amount = item.quantity * parseFloat(item.unitPrice);
+        // Calculate amount server-side regardless of what client sent
+        const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) : item.quantity;
+        const unitPrice = typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice;
+        const amount = quantity * unitPrice;
 
         const newItem: typeof quoteItems.$inferInsert = {
           quoteId: quoteResult[0].id,
           description: item.description,
-          quantity: item.quantity.toString(),
-          unitPrice: item.unitPrice,
+          quantity: quantity.toString(),
+          unitPrice: unitPrice.toString(),
           amount: amount.toString(),
         };
         

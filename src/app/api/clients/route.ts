@@ -8,9 +8,38 @@ import { clientSchema } from '@/lib/validations/client';
 import { ZodError } from 'zod';
 import { withAuth } from '@/lib/auth/getAuthInfo';
 
+// Define response types
+type ClientResponse = {
+  id: number;
+  companyId: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  paymentTerms: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  softDelete: boolean;
+}
+
+type ClientListResponse = {
+  data: ClientResponse[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    pageCount: number;
+  };
+}
+
+type ErrorResponse = {
+  message: string;
+  errors?: any;
+}
+
 // GET /api/clients - Get all clients for the company
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (authInfo) => {
+  return withAuth<ClientListResponse | ErrorResponse>(request, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       
@@ -59,7 +88,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/clients - Create a new client
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (authInfo) => {
+  return withAuth<ClientResponse | ErrorResponse>(request, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const body = await request.json();

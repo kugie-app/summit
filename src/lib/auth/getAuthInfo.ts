@@ -51,7 +51,7 @@ export async function getAuthInfo(request: NextRequest): Promise<AuthInfo | null
 export async function withAuth<T>(
   request: NextRequest, 
   handler: (authInfo: AuthInfo) => Promise<NextResponse<T>>
-): Promise<NextResponse> {
+): Promise<NextResponse<T | { message: string }>> {
   const authInfo = await getAuthInfo(request);
   
   if (!authInfo) {

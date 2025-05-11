@@ -30,6 +30,7 @@ export function InvoiceItemForm({
   onRemove,
 }: InvoiceItemFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calculatedAmount, setCalculatedAmount] = useState(0);
   const isEditing = !!initialData?.id;
 
   const form = useForm<InvoiceItemFormValues>({
@@ -39,7 +40,6 @@ export function InvoiceItemForm({
       description: initialData?.description || '',
       quantity: initialData?.quantity || 1,
       unitPrice: initialData?.unitPrice || 0,
-      amount: initialData?.amount || 0,
     },
   });
 
@@ -49,13 +49,18 @@ export function InvoiceItemForm({
 
   useEffect(() => {
     const amount = Number(quantity) * Number(unitPrice);
-    form.setValue('amount', amount);
-  }, [quantity, unitPrice, form]);
+    setCalculatedAmount(amount);
+  }, [quantity, unitPrice]);
 
   const handleSubmit = async (values: InvoiceItemFormValues) => {
     setIsSubmitting(true);
     try {
-      onSubmit(values);
+      // Include the calculated amount in the submitted data
+      const amount = Number(quantity) * Number(unitPrice);
+      onSubmit({
+        ...values,
+        amount: amount
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -125,24 +130,15 @@ export function InvoiceItemForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Amount</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    readOnly
-                    {...field}
-                    disabled={true}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="md:col-span-2">
+            <FormLabel>Amount (calculated)</FormLabel>
+            <Input
+              type="number"
+              readOnly
+              value={calculatedAmount}
+              disabled={true}
+            />
+          </div>
         </div>
 
         <div className="flex justify-end gap-2">

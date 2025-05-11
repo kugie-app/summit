@@ -1,11 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
+import { z } from 'zod';
 import { db } from '@/lib/db';
 import { invoices, clients } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { createXenditInvoice } from '@/lib/xendit';
-import { z } from 'zod';
+import { withAuth } from '@/lib/auth/getAuthInfo';
+
+// Define response types
+type InvoiceResponse = {
+  id: number;
+  companyId: number;
+  clientId: number;
+  invoiceNumber: string;
+  status: string;
+  issueDate: Date;
+  dueDate: Date | null;
+  total: string;
+  subtotal: string;
+  taxAmount: string;
+  currency: string;
+  notes: string | null;
+  xenditInvoiceId: string | null;
+  xenditInvoiceUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  softDelete: boolean;
+}
+
+type XenditSuccessResponse = {
+  message: string;
+  xenditInvoiceUrl: string;
+  invoice: InvoiceResponse;
+}
+
+type ErrorResponse = {
+  message: string;
+  errors?: any;
+  xenditInvoiceUrl?: string;
+}
 
 // Parameter validation schema
 const paramsSchema = z.object({
@@ -24,122 +56,117 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ invoiceId: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user || !session.user.companyId) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Validate parameters
-    const { invoiceId } = await params;
-    const paramValidation = paramsSchema.safeParse({ invoiceId });
-    if (!paramValidation.success) {
-      return NextResponse.json(
-        { message: 'Invalid invoice ID', errors: paramValidation.error.format() },
-        { status: 400 }
-      );
-    }
-
-    // Parse request body for regenerate flag
-    let body = {};
+  return withAuth<XenditSuccessResponse | ErrorResponse>(request, async (authInfo) => {
     try {
-      body = await request.json();
-    } catch (e) {
-      // If request body is empty, use default empty object
-    }
+      // Validate parameters
+      const validatedParams = paramsSchema.parse(await params);
+      const invoiceId = parseInt(validatedParams.invoiceId);
+      const { companyId } = authInfo;
 
-    const validation = requestSchema.safeParse(body);
-    if (!validation.success) {
+      // Parse request body with fallback for empty bodies
+      let body = {};
+      try {
+        // Only try to parse if content-length is not 0
+        if (request.headers.get('content-length') !== '0') {
+          body = await request.json();
+        }
+      } catch (e) {
+        // If JSON parsing fails, use empty object
+        console.warn('Error parsing request body, using empty object instead:', e);
+      }
+      
+      const { regenerate = false } = requestSchema.parse(body);
+
+      // Get invoice with client data
+      const [invoiceData] = await db
+        .select({
+          invoice: invoices,
+          client: {
+            id: clients.id,
+            name: clients.name,
+            email: clients.email,
+          },
+        })
+        .from(invoices)
+        .leftJoin(clients, eq(invoices.clientId, clients.id))
+        .where(
+          and(
+            eq(invoices.id, invoiceId),
+            eq(invoices.companyId, companyId),
+            eq(invoices.softDelete, false)
+          )
+        );
+
+      if (!invoiceData) {
+        return NextResponse.json({ message: 'Invoice not found' }, { status: 404 });
+      }
+
+      const { invoice, client } = invoiceData;
+
+      // Check if the invoice already has a Xendit payment link and is not being regenerated
+      if (invoice.xenditInvoiceId && invoice.xenditInvoiceUrl && !regenerate) {
+        return NextResponse.json({
+          message: 'Xendit payment link already exists for this invoice',
+          xenditInvoiceUrl: invoice.xenditInvoiceUrl,
+        });
+      }
+
+      // Parse the due date string to a Date object
+      const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : undefined;
+
+      // Calculate the invoice duration in seconds (if dueDate is provided)
+      let invoiceDuration;
+      if (dueDate) {
+        // Calculate difference between current time and due date in seconds
+        const currentTime = new Date();
+        const durationInMs = dueDate.getTime() - currentTime.getTime();
+        invoiceDuration = Math.max(Math.floor(durationInMs / 1000), 0); // Convert to seconds, ensure not negative
+      }
+
+      // Create the payment link via Xendit
+      const xenditInvoice = await createXenditInvoice({
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        amount: parseFloat(invoice.total),
+        currency: invoice.currency,
+        customerEmail: client?.email || '',
+        customerName: client?.name || '',
+        description: `Payment for Invoice #${invoice.invoiceNumber}`,
+        successRedirectUrl: `${process.env.NEXT_PUBLIC_URL}/payment/success`,
+        failureRedirectUrl: `${process.env.NEXT_PUBLIC_URL}/payment/failure`,
+        invoiceDuration: invoiceDuration, // Set the duration instead of expiry date
+      });
+
+      // Update the invoice with Xendit details
+      const [updatedInvoice] = await db
+        .update(invoices)
+        .set({
+          xenditInvoiceId: xenditInvoice.id,
+          xenditInvoiceUrl: xenditInvoice.invoiceUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(invoices.id, invoiceId))
+        .returning();
+
+      return NextResponse.json({
+        message: regenerate ? 'Payment link regenerated successfully' : 'Xendit payment link created successfully',
+        xenditInvoiceUrl: xenditInvoice.invoiceUrl,
+        invoice: updatedInvoice,
+      });
+    } catch (error) {
+      console.error('Error creating Xendit invoice:', error);
+      
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { message: 'Validation error', errors: error.errors },
+          { status: 400 }
+        );
+      }
+      
       return NextResponse.json(
-        { message: 'Invalid request body', errors: validation.error.format() },
-        { status: 400 }
+        { message: 'Failed to create Xendit invoice' },
+        { status: 500 }
       );
     }
-
-    const { regenerate = false } = validation.data;
-
-    const companyId = parseInt(session.user.companyId);
-
-    // Fetch the invoice and related client
-    const result = await db
-      .select({
-        invoice: invoices,
-        client: clients,
-      })
-      .from(invoices)
-      .leftJoin(clients, eq(invoices.clientId, clients.id))
-      .where(
-        and(
-          eq(invoices.id, parseInt(invoiceId)),
-          eq(invoices.companyId, companyId),
-          eq(invoices.softDelete, false)
-        )
-      )
-      .limit(1);
-
-    if (!result.length) {
-      return NextResponse.json({ message: 'Invoice not found' }, { status: 404 });
-    }
-
-    const { invoice, client } = result[0];
-
-    // Check if the invoice already has a Xendit payment link and is not being regenerated
-    if (invoice.xenditInvoiceId && invoice.xenditInvoiceUrl && !regenerate) {
-      return NextResponse.json({
-        message: 'Xendit payment link already exists for this invoice',
-        xenditInvoiceUrl: invoice.xenditInvoiceUrl,
-      });
-    }
-
-    // Parse the due date string to a Date object
-    const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : undefined;
-
-    // Calculate the invoice duration in seconds (if dueDate is provided)
-    let invoiceDuration;
-    if (dueDate) {
-      // Calculate difference between current time and due date in seconds
-      const currentTime = new Date();
-      const durationInMs = dueDate.getTime() - currentTime.getTime();
-      invoiceDuration = Math.max(Math.floor(durationInMs / 1000), 0); // Convert to seconds, ensure not negative
-    }
-
-    // Create the payment link via Xendit
-    const xenditInvoice = await createXenditInvoice({
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      amount: parseFloat(invoice.total),
-      currency: invoice.currency,
-      customerEmail: client?.email || '',
-      customerName: client?.name || '',
-      description: `Payment for Invoice #${invoice.invoiceNumber}`,
-      successRedirectUrl: `${process.env.NEXT_PUBLIC_URL}/payment/success`,
-      failureRedirectUrl: `${process.env.NEXT_PUBLIC_URL}/payment/failure`,
-      invoiceDuration: invoiceDuration, // Set the duration instead of expiry date
-    });
-
-    // Update the invoice with Xendit details
-    const [updatedInvoice] = await db
-      .update(invoices)
-      .set({
-        xenditInvoiceId: xenditInvoice.id,
-        xenditInvoiceUrl: xenditInvoice.invoiceUrl,
-        updatedAt: new Date(),
-      })
-      .where(eq(invoices.id, parseInt(invoiceId)))
-      .returning();
-
-    return NextResponse.json({
-      message: regenerate ? 'Payment link regenerated successfully' : 'Xendit payment link created successfully',
-      xenditInvoiceUrl: xenditInvoice.invoiceUrl,
-      invoice: updatedInvoice,
-    });
-
-  } catch (error) {
-    console.error('Error creating Xendit payment link:', error);
-    return NextResponse.json(
-      { message: 'Failed to create Xendit payment link' },
-      { status: 500 }
-    );
-  }
+  });
 } 

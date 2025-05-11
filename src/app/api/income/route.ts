@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth/options";
 import { db } from "@/lib/db";
 import { income, incomeCategories, clients } from "@/lib/db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
-import { z } from "zod";
+import { incomeSchema } from "@/lib/validations/income";
 
 // GET: List all income entries
 export async function GET(req: NextRequest) {

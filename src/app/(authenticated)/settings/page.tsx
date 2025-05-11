@@ -281,36 +281,6 @@ export default function SettingsPage() {
     }
   };
   
-  const handleSaveNotifications = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Here you would call your API to save the settings
-      await new Promise(resolve => setTimeout(resolve, 500)); // Mock API delay
-      
-      toast.success('Notification settings saved');
-    } catch (error) {
-      toast.error('Failed to save notification settings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleSavePreferences = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Here you would call your API to save the settings
-      await new Promise(resolve => setTimeout(resolve, 500)); // Mock API delay
-      
-      toast.success('Preferences saved');
-    } catch (error) {
-      toast.error('Failed to save preferences');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const copyInviteUrl = () => {
     if (inviteUrl) {
       navigator.clipboard.writeText(inviteUrl);
@@ -325,10 +295,6 @@ export default function SettingsPage() {
           <TabsTrigger value="account" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span>Account</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span>Notifications</span>
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -363,7 +329,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="notifications">
+        {/* <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
@@ -425,7 +391,7 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
         
         <TabsContent value="team">
           <div className="space-y-6">

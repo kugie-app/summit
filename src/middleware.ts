@@ -85,35 +85,19 @@ export async function middleware(request: NextRequest) {
   
   // Enhanced API route handling
   if (pathname.startsWith('/api/')) {
-    // Skip auth check for certain API paths like auth, webhooks, etc.
     const skipAuthPaths = ['/api/auth', '/api/portal/auth', '/api/webhooks', '/api/debug'];
     if (skipAuthPaths.some(path => pathname.startsWith(path))) {
       return NextResponse.next();
     }
-    
-    // Try API token authentication first for API routes
     const authHeader = request.headers.get('Authorization');
-    console.log('Authorization header:', authHeader); // Debug
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const fullToken = authHeader.substring(7);
-      console.log('Full token:', fullToken); // Debug
-      console.log('Token starts with prefix:', fullToken.startsWith(API_TOKEN_PREFIX)); // Debug
-      console.log('Token includes underscore:', fullToken.includes('_')); // Debug
-      
       if (fullToken.startsWith(API_TOKEN_PREFIX) && fullToken.includes('_')) {
         const parts = fullToken.split('_');
-        console.log('Token parts length:', parts.length); // Debug
-        
         if (parts.length >= 2) {
-          // prefix is skt_randompart
           const tokenPrefix = parts[0] + '_' + parts[1];
-          // secret is everything after the first underscore
           const secretPart = parts.slice(2).join('_');
-          
-          console.log('Token prefix:', tokenPrefix); // Debug
-          console.log('Secret part:', secretPart); // Debug
-
           if (tokenPrefix && secretPart) {
             try {
               const tokenRecords = await db
@@ -127,13 +111,10 @@ export async function middleware(request: NextRequest) {
                   )
                 );
               
-              console.log('Token records found:', tokenRecords.length); // Debug
-              
               const tokenRecord = tokenRecords[0];
               
               if (tokenRecord) {
                 const isValid = await verifyTokenSecret(secretPart, tokenRecord.tokenHash);
-                console.log('Token verification result:', isValid); // Debug
                 
                 if (isValid) {
                   // Token is valid - update last used timestamp

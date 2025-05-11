@@ -113,6 +113,20 @@
       "when": 1746942747889,
       "tag": "0015_wide_chimera",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1746957675030,
+      "tag": "0016_exotic_dagger",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1746957956599,
+      "tag": "0017_acoustic_sumo",
+      "breakpoints": true
     }
   ]
 }
