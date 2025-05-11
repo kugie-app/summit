@@ -44,9 +44,14 @@ interface Quote {
   expiryDate: string;
   subtotal: string;
   tax: string;
+  taxRate: string;
   total: string;
   notes: string | null;
   client: Client;
+  company: {
+    defaultCurrency: string;
+    name: string;
+  };
   items: QuoteItem[];
   convertedToInvoiceId: number | null;
 }
@@ -63,14 +68,38 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
       setLoading(true);
       try {
         const { quoteId } = await params;
-        const response = await fetch(`/api/quotes/${quoteId}`);
+        const quoteResult = await fetch(`/api/quotes/${quoteId}`);
         
-        if (!response.ok) {
+        if (!quoteResult.ok) {
           throw new Error('Failed to fetch quote');
         }
         
-        const data = await response.json();
-        setQuote(data);
+        const data = await quoteResult.json();
+        setQuote({
+          id: data.id,
+          quoteNumber: data.quoteNumber,
+          status: data.status,
+          issueDate: data.issueDate,
+          expiryDate: data.expiryDate,
+          subtotal: data.subtotal,
+          tax: data.tax,
+          taxRate: data.taxRate,
+          total: data.total,
+          notes: data.notes,
+          client: data.client || {
+            id: 0,
+            name: '',
+            email: '',
+            phone: null,
+            address: null,
+          },
+          company: data.company || {
+            defaultCurrency: 'IDR',
+            name: ''
+          },
+          items: data.items || [],
+          convertedToInvoiceId: data.convertedToInvoiceId || null,
+        });
       } catch (error) {
         console.error('Error fetching quote:', error);
         toast.error('Failed to load quote details');
@@ -313,15 +342,6 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                 <Send className="h-4 w-4 mr-2" />
                 Mark as Sent
               </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/quotes/${quote.id}/edit`)}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
             </>
           )}
           
@@ -458,27 +478,25 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ quoteId:
                   <tr key={item.id}>
                     <td className="px-4 py-2 whitespace-pre-line text-sm">{item.description}</td>
                     <td className="px-4 py-2 text-sm text-right">{parseFloat(item.quantity).toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">${parseFloat(item.unitPrice).toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">${parseFloat(item.amount).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">{quote.company?.defaultCurrency || 'IDR'} {parseFloat(item.unitPrice).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">{quote.company?.defaultCurrency || 'IDR'} {parseFloat(item.amount).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot className="bg-card">
                 <tr>
                   <td colSpan={3} className="px-4 py-2 text-sm text-right font-medium">Subtotal:</td>
-                  <td className="px-4 py-2 text-sm text-right">${parseFloat(quote.subtotal).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-sm text-right">{quote.company?.defaultCurrency || 'IDR'} {parseFloat(quote.subtotal).toFixed(2)}</td>
                 </tr>
                 <tr>
                   <td colSpan={3} className="px-4 py-2 text-sm text-right font-medium">
-                    Tax ({parseFloat(quote.tax) > 0 
-                      ? ((parseFloat(quote.tax) / parseFloat(quote.subtotal)) * 100).toFixed(2) 
-                      : '0'}%):
+                    Tax ({quote.taxRate || '0'}%):
                   </td>
-                  <td className="px-4 py-2 text-sm text-right">${parseFloat(quote.tax).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-sm text-right">{quote.company?.defaultCurrency || 'IDR'} {parseFloat(quote.tax).toFixed(2)}</td>
                 </tr>
                 <tr>
                   <td colSpan={3} className="px-4 py-2 text-sm text-right font-medium">Total:</td>
-                  <td className="px-4 py-2 text-sm text-right font-bold">${parseFloat(quote.total).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-sm text-right font-bold">{quote.company?.defaultCurrency || 'IDR'} {parseFloat(quote.total).toFixed(2)}</td>
                 </tr>
               </tfoot>
             </table>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/options';
 import { db } from '@/lib/db';
-import { quotes, quoteItems, invoices, invoiceItems } from '@/lib/db/schema';
+import { quotes, quoteItems, invoices, invoiceItems, companies } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { format } from 'date-fns';
 import { generateInvoiceNumber } from '@/lib/utils';
@@ -48,6 +48,9 @@ export async function POST(
       );
     }
     
+    // Fetch company data to get defaultCurrency
+    const [company] = await db.select().from(companies).where(eq(companies.id, Number(companyId)));
+    
     // Check if the quote is already converted to an invoice
     if (quote[0].convertedToInvoiceId) {
       return NextResponse.json(
@@ -83,9 +86,10 @@ export async function POST(
           dueDate: format(new Date(new Date().setDate(new Date().getDate() + 30)), 'yyyy-MM-dd'), // Due in 30 days
           subtotal: quote[0].subtotal,
           tax: quote[0].tax,
+          taxRate: quote[0].taxRate,
           total: quote[0].total,
           notes: quote[0].notes,
-          currency: 'USD',
+          currency: company?.defaultCurrency || 'IDR',
           recurring: 'none',
           createdAt: new Date(),
           updatedAt: new Date(),

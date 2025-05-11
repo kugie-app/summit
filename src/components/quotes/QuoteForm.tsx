@@ -40,6 +40,19 @@ interface Client {
   paymentTerms: number;
 }
 
+interface Company {
+  id: number;
+  name: string;
+  defaultCurrency: string;
+  address: string | null;
+  logoUrl: string | null;
+  bankAccount: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  taxNumber: string | null;
+}
+
 interface Quote {
   id: number;
   companyId: number;
@@ -80,7 +93,7 @@ const formSchema = z.object({
   issueDate: z.date(),
   expiryDate: z.date(),
   subtotal: z.number(),
-  tax: z.number(),
+  taxRate: z.number(),
   total: z.number(),
   notes: z.string().optional(),
   items: z.array(z.any()).optional(),
@@ -98,6 +111,8 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
   const [editingItem, setEditingItem] = useState<QuoteItemFormValues | null>(null);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [showItemForm, setShowItemForm] = useState(false);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(false);
   
   const isEditing = !!initialData?.id;
 
@@ -109,7 +124,7 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
     issueDate: initialData?.issueDate ? new Date(initialData.issueDate) : new Date(),
     expiryDate: initialData?.expiryDate ? new Date(initialData.expiryDate) : new Date(new Date().setDate(new Date().getDate() + 30)),
     subtotal: initialData?.subtotal ? parseFloat(initialData.subtotal) : 0,
-    tax: initialData?.tax ? parseFloat(initialData.tax) : 0,
+    taxRate: initialData?.tax ? parseFloat(initialData.tax) : 0,
     total: initialData?.total ? parseFloat(initialData.total) : 0,
     notes: initialData?.notes ?? '',
     items: []
@@ -124,7 +139,7 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
           description: item.description,
           quantity: parseFloat(item.quantity),
           unitPrice: parseFloat(item.unitPrice),
-          amount: parseFloat(item.amount),
+          amount: parseFloat(item.amount || '0'),
         }))
       );
     }
@@ -154,6 +169,30 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
     fetchClients();
   }, []);
 
+  // Fetch company information
+  useEffect(() => {
+    const fetchCompany = async () => {
+      setIsLoadingCompany(true);
+      try {
+        const response = await fetch('/api/companies/current');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch company information');
+        }
+        
+        const data = await response.json();
+        setCompany(data);
+      } catch (error) {
+        console.error('Error fetching company information:', error);
+        toast.error('Failed to load company information');
+      } finally {
+        setIsLoadingCompany(false);
+      }
+    };
+    
+    fetchCompany();
+  }, []);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialFormValues
@@ -163,7 +202,7 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
   useEffect(() => {
     if (items.length > 0) {
       const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-      const taxRate = form.getValues('tax') || 0;
+      const taxRate = form.getValues('taxRate') || 0;
       const taxAmount = (subtotal * taxRate) / 100;
       const total = subtotal + taxAmount;
       
@@ -176,7 +215,7 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
   }, [items, form]);
 
   // When tax changes, recalculate the total
-  const taxValue = form.watch('tax');
+  const taxValue = form.watch('taxRate');
   useEffect(() => {
     const subtotal = form.getValues('subtotal') || 0;
     const taxAmount = (subtotal * (taxValue || 0)) / 100;
@@ -240,11 +279,11 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
           description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice.toString(),
-          amount: item.amount.toString()
+          amount: (item.amount || 0).toString()
         })),
         issueDate: format(values.issueDate, 'yyyy-MM-dd'),
         expiryDate: format(values.expiryDate, 'yyyy-MM-dd'),
-        taxRate: values.tax,
+        taxRate: values.taxRate,
       };
 
       const url = isEditing 
@@ -408,7 +447,7 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
 
           <FormField
             control={form.control}
-            name="tax"
+            name="taxRate"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Tax Rate (%)</FormLabel>
@@ -470,8 +509,8 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
                       <tr key={index} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3 text-sm">{item.description}</td>
                         <td className="px-4 py-3 text-sm text-right">{item.quantity.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm text-right">IDR {item.unitPrice.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-right">IDR {item.amount.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm text-right">{company?.defaultCurrency || ''} {item.unitPrice.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-right">{company?.defaultCurrency || ''} {(item.amount || 0).toFixed(2)}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-center space-x-4">
                             <Button
@@ -505,17 +544,17 @@ export function QuoteForm({ initialData, onSuccess, onCancel }: QuoteFormProps) 
                 <div className="mt-4 border-t pt-4 flex flex-col items-end pr-4">
                   <div className="grid grid-cols-2 gap-8 text-sm w-64">
                     <div className="text-muted-foreground text-right">Subtotal:</div>
-                    <div className="text-right font-medium">IDR {form.watch('subtotal').toFixed(2)}</div>
+                    <div className="text-right font-medium">{company?.defaultCurrency || ''} {form.watch('subtotal').toFixed(2)}</div>
                   </div>
                   <div className="grid grid-cols-2 gap-8 text-sm w-64 mt-1">
-                    <div className="text-muted-foreground text-right">Tax ({form.watch('tax')}%):</div>
+                    <div className="text-muted-foreground text-right">Tax ({form.watch('taxRate')}%):</div>
                     <div className="text-right font-medium">
-                      IDR {((form.watch('subtotal') * form.watch('tax')) / 100).toFixed(2)}
+                      {company?.defaultCurrency || ''} {((form.watch('subtotal') * form.watch('taxRate')) / 100).toFixed(2)}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-8 text-base w-64 mt-2 border-t pt-2">
                     <div className="font-medium text-right">Total:</div>
-                    <div className="text-right font-bold">IDR {form.watch('total').toFixed(2)}</div>
+                    <div className="text-right font-bold">{company?.defaultCurrency || ''} {form.watch('total').toFixed(2)}</div>
                   </div>
                 </div>
               </div>

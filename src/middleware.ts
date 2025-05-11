@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { verifyTokenSecret, API_TOKEN_PREFIX } from '@/lib/auth/apiTokenUtils';
+import { apiTokens, users as dbUsers } from '@/lib/db/schema';
+import { db } from '@/lib/db';
+import { eq, and, isNull, or } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 const publicPaths = [
   '/auth/signin',
@@ -78,10 +83,78 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // For API routes other than auth, check for authentication
+  // Enhanced API route handling
   if (pathname.startsWith('/api/')) {
-    const token = await getToken({ req: request });
+    const skipAuthPaths = ['/api/auth', '/api/portal/auth', '/api/webhooks', '/api/debug'];
+    if (skipAuthPaths.some(path => pathname.startsWith(path))) {
+      return NextResponse.next();
+    }
+    const authHeader = request.headers.get('Authorization');
     
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const fullToken = authHeader.substring(7);
+      if (fullToken.startsWith(API_TOKEN_PREFIX) && fullToken.includes('_')) {
+        const parts = fullToken.split('_');
+        if (parts.length >= 2) {
+          const tokenPrefix = parts[0] + '_' + parts[1];
+          const secretPart = parts.slice(2).join('_');
+          if (tokenPrefix && secretPart) {
+            try {
+              const tokenRecords = await db
+                .select()
+                .from(apiTokens)
+                .where(
+                  and(
+                    eq(apiTokens.tokenPrefix, tokenPrefix),
+                    isNull(apiTokens.revokedAt),
+                    or(isNull(apiTokens.expiresAt), sql`${apiTokens.expiresAt} > NOW()`)
+                  )
+                );
+              
+              const tokenRecord = tokenRecords[0];
+              
+              if (tokenRecord) {
+                const isValid = await verifyTokenSecret(secretPart, tokenRecord.tokenHash);
+                
+                if (isValid) {
+                  // Token is valid - update last used timestamp
+                  await db.update(apiTokens)
+                    .set({ lastUsedAt: new Date() })
+                    .where(eq(apiTokens.id, tokenRecord.id));
+                  
+                  // Add user and company info to request headers
+                  const requestHeaders = new Headers(request.headers);
+                  requestHeaders.set('x-api-token-user-id', tokenRecord.userId.toString());
+                  requestHeaders.set('x-api-token-company-id', tokenRecord.companyId.toString());
+                  
+                  // Get user role for permissions
+                  const [apiUser] = await db
+                    .select({ role: dbUsers.role })
+                    .from(dbUsers)
+                    .where(eq(dbUsers.id, tokenRecord.userId));
+                    
+                  if (apiUser) {
+                    requestHeaders.set('x-api-token-user-role', apiUser.role);
+                  }
+
+                  return NextResponse.next({
+                    request: {
+                      headers: requestHeaders,
+                    },
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('API token validation error:', error);
+              // Continue to regular auth check if token validation fails
+            }
+          }
+        }
+      }
+    }
+    
+    // Fall back to session-based authentication if no API token or invalid token
+    const token = await getToken({ req: request });
     if (!token) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
@@ -114,4 +187,5 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|images|public).*)',
   ],
+  runtime: 'nodejs',
 }; 

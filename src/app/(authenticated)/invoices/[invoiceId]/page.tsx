@@ -14,6 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -28,6 +29,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  address: string | null;
+}
+
 interface InvoiceItem {
   id: number;
   description: string;
@@ -38,29 +47,27 @@ interface InvoiceItem {
 
 interface Invoice {
   id: number;
-  companyId: number;
-  clientId: number;
   invoiceNumber: string;
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   issueDate: string;
   dueDate: string;
   subtotal: string;
   tax: string;
+  taxRate: string;
   total: string;
   notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-  paidAt: string | null;
+  clientId: number;
+  client?: Client;
+  items: InvoiceItem[];
+  company?: {
+    defaultCurrency: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  paidAt?: string | null;
+  companyId?: number;
   xenditInvoiceId?: string | null;
   xenditInvoiceUrl?: string | null;
-  client: {
-    id: number;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    address: string | null;
-  };
-  items: InvoiceItem[];
 }
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ invoiceId: string }> }) {
@@ -83,7 +90,30 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         }
         
         const data = await response.json();
-        setInvoice(data);
+        setInvoice({
+          id: data.id,
+          invoiceNumber: data.invoiceNumber,
+          status: data.status,
+          issueDate: data.issueDate,
+          dueDate: data.dueDate,
+          subtotal: data.subtotal,
+          tax: data.tax,
+          taxRate: data.taxRate,
+          total: data.total,
+          notes: data.notes,
+          clientId: data.clientId,
+          client: data.client || {
+            id: 0,
+            name: '',
+            email: '',
+            phone: null,
+            address: null,
+          },
+          company: data.company || {
+            defaultCurrency: 'IDR'
+          },
+          items: data.items || [],
+        });
       } catch (error) {
         console.error('Error fetching invoice:', error);
         toast.error('Failed to load invoice details');
@@ -126,6 +156,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
         },
         body: JSON.stringify({
           ...invoice,
+          clientId: invoice.clientId,
           status: newStatus,
           notes: invoice.notes || '',
         }),
@@ -645,26 +676,25 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ invoic
                 <TableRow key={item.id}>
                   <TableCell>{item.description}</TableCell>
                   <TableCell className="text-right">{parseFloat(item.quantity).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">IDR {parseFloat(item.unitPrice).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">IDR {parseFloat(item.amount).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">{invoice.company?.defaultCurrency || "IDR"} {parseFloat(item.unitPrice).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">{invoice.company?.defaultCurrency || "IDR"} {parseFloat(item.amount).toFixed(2)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          
           <div className="mt-4 flex flex-col items-end">
             <div className="space-y-2 w-48">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span>{formatCurrency(invoice.subtotal)}</span>
+                {invoice.company?.defaultCurrency || "IDR"} {parseFloat(invoice.subtotal).toFixed(2)}
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax:</span>
-                <span>{formatCurrency(invoice.tax)}</span>
+                <span className="text-muted-foreground">Tax ({invoice.taxRate || '0'}%)</span>
+                {invoice.company?.defaultCurrency || "IDR"} {parseFloat(invoice.tax).toFixed(2)}
               </div>
               <div className="flex justify-between font-semibold">
                 <span>Total:</span>
-                <span>{formatCurrency(invoice.total)}</span>
+                {invoice.company?.defaultCurrency || "IDR"} {parseFloat(invoice.total).toFixed(2)}
               </div>
             </div>
           </div>

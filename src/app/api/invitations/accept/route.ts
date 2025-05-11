@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { hash } from 'bcrypt';
+import { hash } from 'bcryptjs';
 import { db } from '@/lib/db';
 import { companyInvitations, users, companies } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';

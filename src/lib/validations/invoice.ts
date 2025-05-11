@@ -7,7 +7,7 @@ export const invoiceItemSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   quantity: z.coerce.number().positive('Quantity must be positive'),
   unitPrice: z.coerce.number().min(0, 'Unit price cannot be negative'),
-  amount: z.coerce.number().min(0, 'Amount cannot be negative'),
+  amount: z.coerce.number().min(0, 'Amount cannot be negative').optional(),
 });
 
 export type InvoiceItemFormValues = z.infer<typeof invoiceItemSchema>;
@@ -19,9 +19,10 @@ export const invoiceSchema = z.object({
   status: z.enum(['draft', 'sent', 'paid', 'overdue', 'cancelled']).default('draft'),
   issueDate: z.coerce.date(),
   dueDate: z.coerce.date(),
-  subtotal: z.coerce.number().min(0, 'Subtotal cannot be negative'),
+  subtotal: z.coerce.number().min(0, 'Subtotal cannot be negative').optional(),
   tax: z.coerce.number().min(0, 'Tax cannot be negative').default(0),
-  total: z.coerce.number().min(0, 'Total cannot be negative'),
+  taxRate: z.coerce.number().min(0, 'Tax rate cannot be negative').default(0),
+  total: z.coerce.number().min(0, 'Total cannot be negative').optional(),
   currency: z.string().default('IDR'),
   notes: z.string().optional(),
   recurring: recurringOptionEnum.default('none'),

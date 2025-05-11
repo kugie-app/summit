@@ -12,19 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-
-const incomeSchema = z.object({
-  source: z.string().min(1, "Source is required"),
-  description: z.string().optional(),
-  amount: z.string().min(1, "Amount is required"),
-  currency: z.string().default("USD"),
-  incomeDate: z.string().min(1, "Income date is required"),
-  categoryId: z.string().optional(),
-  clientId: z.string().optional(),
-  invoiceId: z.string().optional(),
-  recurring: z.enum(["none", "daily", "weekly", "monthly", "yearly"]).default("none"),
-  nextDueDate: z.string().optional(),
-});
+import { incomeSchema } from "@/lib/validations/income";
 
 type IncomeFormValues = z.infer<typeof incomeSchema>;
 
@@ -45,6 +33,19 @@ type Invoice = {
   totalAmount: string;
 };
 
+type Company = {
+  id: number;
+  name: string;
+  defaultCurrency: string;
+  address: string | null;
+  logoUrl: string | null;
+  bankAccount: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  taxNumber: string | null;
+};
+
 interface IncomeFormProps {
   incomeId?: string;
 }
@@ -59,6 +60,7 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   
   const {
     register,
@@ -72,12 +74,12 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
       description: "",
       amount: "",
       currency: "USD",
-      incomeDate: format(new Date(), "yyyy-MM-dd"),
-      categoryId: "",
-      clientId: "",
-      invoiceId: "",
+      incomeDate: new Date(),
+      categoryId: 0,
+      clientId: 0,
+      invoiceId: 0,
       recurring: "none",
-      nextDueDate: "",
+      nextDueDate: new Date(),
     },
   });
   
@@ -86,29 +88,45 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
   const invoiceIdValue = watch("invoiceId");
   
   useEffect(() => {
-    fetchCategories();
-    fetchClients();
+    const initialize = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          fetchCategories(),
+          fetchClients(),
+          fetchCompany()
+        ]);
+        
+        if (incomeId) {
+          // Load income data if in edit mode
+          await fetchIncome();
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
+        toast.error('Failed to load form data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    if (isEditing) {
-      fetchIncome();
-    }
-  }, [isEditing, incomeId]);
+    initialize();
+  }, [incomeId]);
   
   // Watch for changes in the client selection to filter invoices
   useEffect(() => {
-    setSelectedClientId(clientIdValue ?? null);
+    setSelectedClientId(clientIdValue ? String(clientIdValue) : null);
     if (clientIdValue) {
-      fetchInvoicesByClient(clientIdValue);
+      fetchInvoicesByClient(String(clientIdValue));
     } else {
       setInvoices([]);
-      setValue("invoiceId", "");
+      setValue("invoiceId", 0);
     }
   }, [clientIdValue]);
   
   // Watch for changes in the invoice selection to auto-fill amount
   useEffect(() => {
     if (invoiceIdValue) {
-      const selectedInvoice = invoices.find((invoice) => invoice.id.toString() === invoiceIdValue);
+      const selectedInvoice = invoices.find((invoice) => invoice.id === invoiceIdValue);
       if (selectedInvoice) {
         setValue("amount", selectedInvoice.totalAmount);
         setValue("source", `Invoice #${selectedInvoice.invoiceNumber}`);
@@ -169,14 +187,14 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
       setValue("description", incomeData.description || "");
       setValue("amount", incomeData.amount);
       setValue("currency", incomeData.currency);
-      setValue("incomeDate", format(new Date(incomeData.incomeDate), "yyyy-MM-dd"));
-      setValue("categoryId", incomeData.categoryId ? String(incomeData.categoryId) : "");
-      setValue("clientId", incomeData.clientId ? String(incomeData.clientId) : "");
-      setValue("invoiceId", incomeData.invoiceId ? String(incomeData.invoiceId) : "");
+      setValue("incomeDate", new Date(incomeData.incomeDate));
+      setValue("categoryId", incomeData.categoryId);
+      setValue("clientId", incomeData.clientId);
+      setValue("invoiceId", incomeData.invoiceId);
       setValue("recurring", incomeData.recurring);
       
       if (incomeData.nextDueDate) {
-        setValue("nextDueDate", format(new Date(incomeData.nextDueDate), "yyyy-MM-dd"));
+        setValue("nextDueDate", new Date(incomeData.nextDueDate));
       }
       
       // If there's a client ID, fetch the related invoices
@@ -193,15 +211,31 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
     }
   };
   
+  const fetchCompany = async () => {
+    try {
+      const response = await fetch('/api/companies/current');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch company information');
+      }
+      
+      const data = await response.json();
+      setCompany(data);
+    } catch (error) {
+      console.error('Error fetching company information:', error);
+      toast.error('Failed to load company information');
+    }
+  };
+  
   const onSubmit = async (data: IncomeFormValues) => {
     setIsSubmitting(true);
     
     try {
       const incomeData = {
         ...data,
-        categoryId: data.categoryId ? parseInt(data.categoryId) : null,
-        clientId: data.clientId ? parseInt(data.clientId) : null,
-        invoiceId: data.invoiceId ? parseInt(data.invoiceId) : null,
+        categoryId: data.categoryId ? data.categoryId : null,
+        clientId: data.clientId ? data.clientId : null,
+        invoiceId: data.invoiceId ? data.invoiceId : null,
         // Only include nextDueDate if recurring is not "none"
         nextDueDate: data.recurring !== "none" ? data.nextDueDate : null,
       };
@@ -284,7 +318,7 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
                     <option value="">Select an invoice (optional)</option>
                     {invoices.map((invoice) => (
                       <option key={invoice.id} value={invoice.id}>
-                        #{invoice.invoiceNumber} - {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(parseFloat(invoice.totalAmount))}
+                        #{invoice.invoiceNumber} - {new Intl.NumberFormat('id-ID', { style: 'currency', currency: company?.defaultCurrency || 'IDR' }).format(parseFloat(invoice.totalAmount))}
                       </option>
                     ))}
                   </select>
@@ -324,6 +358,7 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
                   <select
                     {...register("currency")}
                     className="ml-2 border rounded p-2 w-24"
+                    defaultValue={company?.defaultCurrency || "IDR"}
                   >
                     <option value="IDR">IDR</option>
                     <option value="USD">USD</option>

@@ -22,6 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 import { Plus, ArrowUp, ArrowDown, Search, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,9 +43,13 @@ interface Quote {
   issueDate: string;
   expiryDate: string;
   total: string;
+  currency: string;
   client: {
     name: string;
     email: string;
+  };
+  company?: {
+    defaultCurrency: string;
   };
 }
 
@@ -285,7 +290,7 @@ export function QuoteList({ className }: QuoteListProps) {
                     </div>
                   </TableCell>
                   <TableCell className="text-right" onClick={() => handleViewQuote(quote.id)}>
-                    ${parseFloat(quote.total).toFixed(2)}
+                    {formatCurrency(parseFloat(quote.total), quote.company?.defaultCurrency || 'IDR')}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
