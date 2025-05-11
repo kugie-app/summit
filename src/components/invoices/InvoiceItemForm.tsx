@@ -131,12 +131,14 @@ export function InvoiceItemForm({
           />
 
           <div className="md:col-span-2">
-            <FormLabel>Amount (calculated)</FormLabel>
+            <FormLabel htmlFor="calculated-amount">Amount (calculated)</FormLabel>
             <Input
+              id="calculated-amount"
               type="number"
               readOnly
               value={calculatedAmount}
               disabled={true}
+              data-testid="amount-input"
             />
           </div>
         </div>
@@ -161,8 +163,8 @@ export function InvoiceItemForm({
           >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             onClick={form.handleSubmit(handleSubmit)}
             disabled={isSubmitting}
           >
