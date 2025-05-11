@@ -6,20 +6,6 @@ import { income, incomeCategories, clients } from "@/lib/db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 
-// Income validation schema
-const incomeSchema = z.object({
-  categoryId: z.number().nullable().optional(),
-  clientId: z.number().nullable().optional(),
-  invoiceId: z.number().nullable().optional(),
-  source: z.string().min(1, "Source is required"),
-  description: z.string().optional(),
-  amount: z.string().min(1, "Amount is required"),
-  currency: z.string().default("USD"),
-  incomeDate: z.coerce.date(),
-  recurring: z.enum(["none", "daily", "weekly", "monthly", "yearly"]).default("none"),
-  nextDueDate: z.coerce.date().optional().nullable(),
-});
-
 // GET: List all income entries
 export async function GET(req: NextRequest) {
   try {

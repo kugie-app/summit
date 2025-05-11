@@ -272,6 +272,20 @@ export const paymentMethodEnum = pgEnum('payment_method', ['card', 'bank_transfe
 // Define payment status enum
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'completed', 'failed']);
 
+// Define API tokens table
+export const apiTokens = pgTable('api_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  tokenPrefix: varchar('token_prefix', { length: 12 }).notNull().unique(), // e.g., skt_ + 8 chars
+  tokenHash: varchar('token_hash', { length: 255 }).notNull(),
+  expiresAt: timestamp('expires_at', { mode: 'date' }),
+  lastUsedAt: timestamp('last_used_at', { mode: 'date' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  revokedAt: timestamp('revoked_at', { mode: 'date' }),
+});
+
 // Define client users table for portal access
 export const clientUsers = pgTable('client_users', {
   id: serial('id').primaryKey(),
@@ -402,13 +416,15 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   transactions: many(transactions),
   payments: many(payments),
   invitations: many(companyInvitations),
+  apiTokens: many(apiTokens),
 }));
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   company: one(companies, {
     fields: [users.companyId],
     references: [companies.id],
   }),
+  apiTokens: many(apiTokens),
 }));
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
@@ -588,4 +604,16 @@ export const companyInvitationsRelations = relations(companyInvitations, ({ one 
 // Define vendors relations
 export const vendorsRelations = relations(vendors, ({ many }) => ({
   expenses: many(expenses),
+}));
+
+// Define API tokens relations
+export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [apiTokens.userId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [apiTokens.companyId],
+    references: [companies.id],
+  }),
 }));

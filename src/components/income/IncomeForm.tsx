@@ -13,19 +13,6 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-const incomeSchema = z.object({
-  source: z.string().min(1, "Source is required"),
-  description: z.string().optional(),
-  amount: z.string().min(1, "Amount is required"),
-  currency: z.string().default("USD"),
-  incomeDate: z.string().min(1, "Income date is required"),
-  categoryId: z.string().optional(),
-  clientId: z.string().optional(),
-  invoiceId: z.string().optional(),
-  recurring: z.enum(["none", "daily", "weekly", "monthly", "yearly"]).default("none"),
-  nextDueDate: z.string().optional(),
-});
-
 type IncomeFormValues = z.infer<typeof incomeSchema>;
 
 type Category = {

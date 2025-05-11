@@ -23,6 +23,7 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  KeyRound,
 } from 'lucide-react';
 import {
   Table,
@@ -64,6 +65,7 @@ import {
 } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import CompanySettings from '@/components/settings/CompanySettings';
+import ApiTokenSettings from '@/components/settings/ApiTokenSettings';
 
 // Form validation schema for inviting users
 const inviteFormSchema = z.object({
@@ -317,44 +319,51 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      
-      <Tabs defaultValue="team" className="space-y-6">
-        <TabsList className="mb-4">
-          {/* <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span>Notifications</span>
-          </TabsTrigger>
-          <TabsTrigger value="preferences" className="flex items-center gap-2">
-            <SettingsIcon className="h-4 w-4" />
-            <span>Preferences</span>
-          </TabsTrigger>
+    <div className="container py-10">
+      <Tabs defaultValue="account" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="account" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span>Account</span>
-          </TabsTrigger> */}
-          {session?.user?.permissions?.['users.view'] && (
-            <TabsTrigger value="team" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Team</span>
-            </TabsTrigger>
-          )}
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span>Notifications</span>
+          </TabsTrigger>
+          <TabsTrigger value="team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span>Team</span>
+          </TabsTrigger>
           <TabsTrigger value="company" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
             <span>Company</span>
           </TabsTrigger>
-          {/* <TabsTrigger value="billing" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            <span>Billing</span>
+          <TabsTrigger value="api-tokens" className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4" />
+            <span>API Tokens</span>
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            <span>Security</span>
-          </TabsTrigger> */}
         </TabsList>
         
-        {/* <TabsContent value="notifications">
+        <TabsContent value="account">
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Settings</CardTitle>
+              <CardDescription>
+                Manage your account details and preferences.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                The account settings section will allow users to update their profile, change password, and manage their account preferences.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                This section is currently being developed and will be available soon.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
@@ -418,303 +427,306 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="preferences">
-          <Card>
-            <CardHeader>
-              <CardTitle>Application Preferences</CardTitle>
-              <CardDescription>
-                Customize your application experience.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <RadioGroup 
-                    defaultValue={theme} 
-                    onValueChange={setTheme}
-                    className="flex flex-col space-y-1"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="light" id="theme-light" />
-                      <Label htmlFor="theme-light">Light</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="dark" id="theme-dark" />
-                      <Label htmlFor="theme-dark">Dark</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="system" id="theme-system" />
-                      <Label htmlFor="theme-system">System</Label>
-                    </div>
-                  </RadioGroup>
+        <TabsContent value="team">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Team Members</CardTitle>
+                  <CardDescription>
+                    Manage your team members and their access levels.
+                  </CardDescription>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label>Date Format</Label>
-                  <RadioGroup 
-                    defaultValue={dateFormat} 
-                    onValueChange={setDateFormat}
-                    className="flex flex-col space-y-1"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="MM/DD/YYYY" id="date-format-us" />
-                      <Label htmlFor="date-format-us">MM/DD/YYYY (US)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="DD/MM/YYYY" id="date-format-eu" />
-                      <Label htmlFor="date-format-eu">DD/MM/YYYY (EU)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="YYYY-MM-DD" id="date-format-iso" />
-                      <Label htmlFor="date-format-iso">YYYY-MM-DD (ISO)</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                
-                <Button 
-                  onClick={handleSavePreferences} 
-                  disabled={isLoading}
-                  className="mt-4"
-                >
-                  {isLoading ? 'Saving...' : 'Save Preferences'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="account">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-              <CardDescription>
-                Manage your account details and preferences.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                The account settings section will allow users to update their profile, change password, and manage their account preferences.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                This section is currently being developed and will be available soon.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent> */}
-        
-        {session?.user?.permissions?.['users.view'] && (
-          <TabsContent value="team">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Team Members</CardTitle>
-                    <CardDescription>
-                      Manage your team members and their access levels.
-                    </CardDescription>
-                  </div>
-                  {session?.user?.permissions?.['users.invite'] && (
-                    <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="flex items-center gap-2">
-                          <UserPlus className="h-4 w-4" />
-                          <span>Invite Team Member</span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Invite Team Member</DialogTitle>
-                          <DialogDescription>
-                            Send an invitation to a new team member. They will receive an email with instructions to create an account.
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <Form {...inviteForm}>
-                          <form onSubmit={inviteForm.handleSubmit(onInviteSubmit)} className="space-y-4">
-                            <FormField
-                              control={inviteForm.control}
-                              name="email"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Email Address</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="email@example.com" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={inviteForm.control}
-                              name="name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Name (Optional)</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="John Doe" {...field} />
-                                  </FormControl>
-                                  <FormDescription>
-                                    If provided, the name will be pre-filled in the registration form.
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={inviteForm.control}
-                              name="role"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Role</FormLabel>
-                                  <Select 
-                                    onValueChange={field.onChange} 
-                                    defaultValue={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select a role" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="admin">Administrator</SelectItem>
-                                      <SelectItem value="accountant">Accountant</SelectItem>
-                                      <SelectItem value="staff">Staff</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormDescription>
-                                    The role determines what permissions the user will have.
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            {inviteUrl && (
-                              <Alert>
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Invitation Created</AlertTitle>
-                                <AlertDescription className="flex flex-col gap-2">
-                                  <p className="text-sm">Share this link with the invitee:</p>
-                                  <div className="flex items-center gap-2">
-                                    <Input 
-                                      value={inviteUrl} 
-                                      readOnly 
-                                      className="text-xs"
-                                    />
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={copyInviteUrl}
-                                    >
-                                      Copy
-                                    </Button>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    In a production environment, an email would be sent automatically.
-                                  </p>
-                                </AlertDescription>
-                              </Alert>
+                {session?.user?.permissions?.['users.invite'] && (
+                  <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <UserPlus className="h-4 w-4" />
+                        <span>Invite Team Member</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Invite Team Member</DialogTitle>
+                        <DialogDescription>
+                          Send an invitation to a new team member. They will receive an email with instructions to create an account.
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <Form {...inviteForm}>
+                        <form onSubmit={inviteForm.handleSubmit(onInviteSubmit)} className="space-y-4">
+                          <FormField
+                            control={inviteForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email Address</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="email@example.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )}
-                            
-                            <DialogFooter className="mt-4">
-                              <Button
-                                type="submit"
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Sending Invitation...
-                                  </>
+                          />
+                          
+                          <FormField
+                            control={inviteForm.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Name (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="John Doe" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  If provided, the name will be pre-filled in the registration form.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={inviteForm.control}
+                            name="role"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Role</FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange} 
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="admin">Administrator</SelectItem>
+                                    <SelectItem value="accountant">Accountant</SelectItem>
+                                    <SelectItem value="staff">Staff</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                  The role determines what permissions the user will have.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          {inviteUrl && (
+                            <Alert>
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertTitle>Invitation Created</AlertTitle>
+                              <AlertDescription className="flex flex-col gap-2">
+                                <p className="text-sm">Share this link with the invitee:</p>
+                                <div className="flex items-center gap-2">
+                                  <Input 
+                                    value={inviteUrl} 
+                                    readOnly 
+                                    className="text-xs"
+                                  />
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={copyInviteUrl}
+                                  >
+                                    Copy
+                                  </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  In a production environment, an email would be sent automatically.
+                                </p>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          <DialogFooter className="mt-4">
+                            <Button
+                              type="submit"
+                              disabled={isLoading}
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Sending Invitation...
+                                </>
+                              ) : (
+                                'Send Invitation'
+                              )}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </CardHeader>
+              <CardContent>
+                {loadingUsers ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : users.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Joined</TableHead>
+                          {session?.user?.permissions?.['users.delete'] && (
+                            <TableHead className="text-right">Actions</TableHead>
+                          )}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map(user => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.name}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground">
+                                {roleLabels[user.role] || user.role}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            {session?.user?.permissions?.['users.delete'] && (
+                              <TableCell className="text-right">
+                                {user.id.toString() === session.user.id ? (
+                                  <span className="text-xs text-muted-foreground">Current user</span>
                                 ) : (
-                                  'Send Invitation'
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setDeleteUserId(user.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Confirm Deletion</DialogTitle>
+                                        <DialogDescription>
+                                          Are you sure you want to remove {user.name || user.email} from your team?
+                                          This action cannot be undone.
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <DialogFooter className="gap-2 sm:justify-end">
+                                        <DialogClose asChild>
+                                          <Button type="button" variant="outline">
+                                            Cancel
+                                          </Button>
+                                        </DialogClose>
+                                        <Button
+                                          type="button"
+                                          variant="destructive"
+                                          onClick={() => handleDeleteUser(user.id)}
+                                        >
+                                          Delete User
+                                        </Button>
+                                      </DialogFooter>
+                                    </DialogContent>
+                                  </Dialog>
                                 )}
-                              </Button>
-                            </DialogFooter>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No team members found</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {session?.user?.permissions?.['users.invite'] && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pending Invitations</CardTitle>
+                  <CardDescription>
+                    Manage and track pending team member invitations.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {loadingUsers ? (
+                  {loadingInvitations ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                  ) : users.length > 0 ? (
+                  ) : invitations.length > 0 ? (
                     <div className="rounded-md border">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Name</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead>Joined</TableHead>
-                            {session?.user?.permissions?.['users.delete'] && (
-                              <TableHead className="text-right">Actions</TableHead>
-                            )}
+                            <TableHead>Sent</TableHead>
+                            <TableHead>Expires</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {users.map(user => (
-                            <TableRow key={user.id}>
-                              <TableCell className="font-medium">{user.name}</TableCell>
-                              <TableCell>{user.email}</TableCell>
+                          {invitations.map(invitation => (
+                            <TableRow key={invitation.id}>
+                              <TableCell className="font-medium">{invitation.email}</TableCell>
                               <TableCell>
                                 <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground">
-                                  {roleLabels[user.role] || user.role}
+                                  {roleLabels[invitation.role] || invitation.role}
                                 </span>
                               </TableCell>
                               <TableCell>
-                                {new Date(user.createdAt).toLocaleDateString()}
+                                {new Date(invitation.createdAt).toLocaleDateString()}
                               </TableCell>
-                              {session?.user?.permissions?.['users.delete'] && (
-                                <TableCell className="text-right">
-                                  {user.id.toString() === session.user.id ? (
-                                    <span className="text-xs text-muted-foreground">Current user</span>
-                                  ) : (
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => setDeleteUserId(user.id)}
-                                        >
-                                          <Trash2 className="h-4 w-4 text-destructive" />
+                              <TableCell>
+                                {new Date(invitation.expires).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setCancelInvitationId(invitation.id)}
+                                    >
+                                      <X className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Confirm Cancellation</DialogTitle>
+                                      <DialogDescription>
+                                        Are you sure you want to cancel the invitation to {invitation.email}?
+                                        They will no longer be able to use this invitation.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter className="gap-2 sm:justify-end">
+                                      <DialogClose asChild>
+                                        <Button type="button" variant="outline">
+                                          No, Keep It
                                         </Button>
-                                      </DialogTrigger>
-                                      <DialogContent>
-                                        <DialogHeader>
-                                          <DialogTitle>Confirm Deletion</DialogTitle>
-                                          <DialogDescription>
-                                            Are you sure you want to remove {user.name || user.email} from your team?
-                                            This action cannot be undone.
-                                          </DialogDescription>
-                                        </DialogHeader>
-                                        <DialogFooter className="gap-2 sm:justify-end">
-                                          <DialogClose asChild>
-                                            <Button type="button" variant="outline">
-                                              Cancel
-                                            </Button>
-                                          </DialogClose>
-                                          <Button
-                                            type="button"
-                                            variant="destructive"
-                                            onClick={() => handleDeleteUser(user.id)}
-                                          >
-                                            Delete User
-                                          </Button>
-                                        </DialogFooter>
-                                      </DialogContent>
-                                    </Dialog>
-                                  )}
-                                </TableCell>
-                              )}
+                                      </DialogClose>
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        onClick={() => handleCancelInvitation(invitation.id)}
+                                      >
+                                        Yes, Cancel Invitation
+                                      </Button>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -722,146 +734,22 @@ export default function SettingsPage() {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-muted-foreground">No team members found</p>
+                      <p className="text-muted-foreground">No pending invitations</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
-              
-              {session?.user?.permissions?.['users.invite'] && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pending Invitations</CardTitle>
-                    <CardDescription>
-                      Manage and track pending team member invitations.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loadingInvitations ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    ) : invitations.length > 0 ? (
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Email</TableHead>
-                              <TableHead>Role</TableHead>
-                              <TableHead>Sent</TableHead>
-                              <TableHead>Expires</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {invitations.map(invitation => (
-                              <TableRow key={invitation.id}>
-                                <TableCell className="font-medium">{invitation.email}</TableCell>
-                                <TableCell>
-                                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground">
-                                    {roleLabels[invitation.role] || invitation.role}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  {new Date(invitation.createdAt).toLocaleDateString()}
-                                </TableCell>
-                                <TableCell>
-                                  {new Date(invitation.expires).toLocaleDateString()}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setCancelInvitationId(invitation.id)}
-                                      >
-                                        <X className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                      <DialogHeader>
-                                        <DialogTitle>Confirm Cancellation</DialogTitle>
-                                        <DialogDescription>
-                                          Are you sure you want to cancel the invitation to {invitation.email}?
-                                          They will no longer be able to use this invitation.
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <DialogFooter className="gap-2 sm:justify-end">
-                                        <DialogClose asChild>
-                                          <Button type="button" variant="outline">
-                                            No, Keep It
-                                          </Button>
-                                        </DialogClose>
-                                        <Button
-                                          type="button"
-                                          variant="destructive"
-                                          onClick={() => handleCancelInvitation(invitation.id)}
-                                        >
-                                          Yes, Cancel Invitation
-                                        </Button>
-                                      </DialogFooter>
-                                    </DialogContent>
-                                  </Dialog>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">No pending invitations</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-        )}
+            )}
+          </div>
+        </TabsContent>
 
         <TabsContent value="company">
           <CompanySettings />
         </TabsContent>
         
-        {/* <TabsContent value="billing">
-          <Card>
-            <CardHeader>
-              <CardTitle>Billing Information</CardTitle>
-              <CardDescription>
-                Manage your subscription and billing details.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                The billing section will allow users to view and update their subscription plans, payment methods, and billing history.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                This section is currently being developed and will be available soon.
-              </p>
-            </CardContent>
-          </Card>
+        <TabsContent value="api-tokens">
+          <ApiTokenSettings />
         </TabsContent>
-        
-        <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>
-                Secure your account with additional security layers.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                The security section will allow users to set up two-factor authentication, manage connected devices, and review login history.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                This section is currently being developed and will be available soon.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent> */}
       </Tabs>
     </div>
   );
