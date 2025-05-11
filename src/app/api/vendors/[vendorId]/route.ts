@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
 import { db } from '@/lib/db';
 import { vendors } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { withAuth } from '@/lib/auth/getAuthInfo';
+
+type VendorResponse = {
+  data: VendorData;
+}
+
+type VendorData = {
+  id: number;
+  companyId: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+type ErrorResponse = {
+  message?: string;
+  error?: any;
+}
 
 // GET /api/vendors/[vendorId] - Get a specific vendor
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ vendorId: string }> }
 ) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<VendorResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const { vendorId } = await params;
@@ -54,7 +69,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ vendorId: string }> }
 ) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<VendorResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const { vendorId } = await params;
@@ -128,7 +143,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ vendorId: string }> }
 ) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<VendorResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const { vendorId } = await params;

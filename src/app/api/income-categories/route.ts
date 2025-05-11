@@ -12,9 +12,36 @@ const createCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
 });
 
+type IncomeCategoryResponse = {
+  data: IncomeCategoryData[];
+  total: number;
+};
+
+type IncomeCategoryData = {
+  id: number;
+  companyId: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+  softDelete: boolean;
+}
+
+type CreateIncomeCategoryResponse = {
+  id: number;
+  companyId: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+type ErrorResponse = {
+  message?: string;
+  error?: any;
+};
+
 // GET: Fetch all income categories for the user's company
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<IncomeCategoryResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       
@@ -46,7 +73,7 @@ export async function GET(req: NextRequest) {
 
 // POST: Create a new income category
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<CreateIncomeCategoryResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const body = await req.json();

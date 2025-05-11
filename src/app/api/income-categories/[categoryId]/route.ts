@@ -12,12 +12,27 @@ const updateCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
 });
 
+type IncomeCategoryResponse = {
+  id: number;
+  companyId: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+  softDelete: boolean;
+}
+
+type ErrorResponse = {
+  message?: string;
+  error?: any;
+};
+
 // GET: Fetch a specific income category by ID
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ categoryId: string }> }
 ) {
-  return withAuth(req, async (authInfo) => {
+  
+  return withAuth<IncomeCategoryResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const { categoryId } = await params;
@@ -64,7 +79,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ categoryId: string }> }
 ) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<IncomeCategoryResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const { categoryId } = await params;
@@ -159,7 +174,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ categoryId: string }> }
 ) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<IncomeCategoryResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const { categoryId } = await params;

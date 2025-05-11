@@ -15,7 +15,7 @@ const paramsSchema = z.object({
 // DELETE /api/api-tokens/[tokenId] - Revoke an API token
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { tokenId: string } }
+  { params }: { params: Promise<{ tokenId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -25,8 +25,10 @@ export async function DELETE(
 
     const userId = parseInt(session.user.id);
     const companyId = parseInt(session.user.companyId);
+
+    const { tokenId } = await params;
     
-    const paramsValidation = paramsSchema.safeParse({ tokenId: params.tokenId });
+    const paramsValidation = paramsSchema.safeParse({ tokenId });
 
     if (!paramsValidation.success) {
       return NextResponse.json(

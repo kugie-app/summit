@@ -1,14 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/options';
 import { db } from '@/lib/db';
 import { vendors } from '@/lib/db/schema';
 import { and, eq, ilike, desc } from 'drizzle-orm';
 import { withAuth } from '@/lib/auth/getAuthInfo';
 
+type VendorResponse = {
+  data: VendorData[];
+  count: number;
+}
+
+type VendorData = {
+  id: number;
+  companyId: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+type ErrorResponse = {
+  message?: string;
+  error?: any;
+}
+
+
 // GET /api/vendors - Get all vendors for the current company
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<VendorResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const url = new URL(req.url);
@@ -38,7 +55,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/vendors - Create a new vendor
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (authInfo) => {
+  return withAuth<VendorResponse | ErrorResponse>(req, async (authInfo) => {
     try {
       const { companyId } = authInfo;
       const data = await req.json();

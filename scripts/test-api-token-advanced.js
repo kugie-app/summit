@@ -448,6 +448,9 @@ function formatResponse(result) {
   return output;
 }
 
+// Track test results
+const testResults = [];
+
 /**
  * Run the tests
  */
@@ -471,6 +474,12 @@ async function runTests() {
     // Skip test if condition is met
     if (test.skipIf && test.skipIf()) {
       console.log(`\n--- Skipping: ${test.description} (${test.name}) ---`);
+      testResults.push({
+        name: test.name,
+        description: test.description,
+        status: 'SKIPPED',
+        success: null
+      });
       continue;
     }
     
@@ -478,9 +487,70 @@ async function runTests() {
     const result = await makeRequest(test);
     console.log(formatResponse(result));
     console.log('-----------------------------------');
+    
+    // Store the test result
+    testResults.push({
+      name: test.name,
+      description: test.description,
+      status: result.status,
+      success: result.success
+    });
   }
 
+  // Display summary table
+  displaySummaryTable();
+
   console.log('\n=== Tests Completed ===');
+}
+
+/**
+ * Display a summary table of test results
+ */
+function displaySummaryTable() {
+  console.log('\n=== Test Results Summary ===');
+  
+  // Calculate column widths
+  const nameWidth = Math.max(20, ...testResults.map(r => r.name.length));
+  const descWidth = Math.max(30, ...testResults.map(r => r.description.length));
+  const statusWidth = 10;
+  const resultWidth = 10;
+  
+  // Table header
+  console.log('\n' + '='.repeat(nameWidth + descWidth + statusWidth + resultWidth + 10));
+  console.log(
+    '| ' + 'Test Name'.padEnd(nameWidth) + 
+    ' | ' + 'Description'.padEnd(descWidth) + 
+    ' | ' + 'Status'.padEnd(statusWidth) + 
+    ' | ' + 'Result'.padEnd(resultWidth) + ' |'
+  );
+  console.log('|' + '-'.repeat(nameWidth + 2) + '|' + '-'.repeat(descWidth + 2) + '|' + '-'.repeat(statusWidth + 2) + '|' + '-'.repeat(resultWidth + 2) + '|');
+  
+  // Table rows
+  testResults.forEach(result => {
+    const successText = result.success === null ? 'N/A' : (result.success ? 'SUCCESS' : 'FAILED');
+    const successColor = result.success === null ? '\x1b[33m' : (result.success ? '\x1b[32m' : '\x1b[31m');
+    const resetColor = '\x1b[0m';
+    
+    console.log(
+      '| ' + result.name.padEnd(nameWidth) + 
+      ' | ' + result.description.padEnd(descWidth) + 
+      ' | ' + ('' + result.status).padEnd(statusWidth) + 
+      ' | ' + successColor + successText.padEnd(resultWidth) + resetColor + ' |'
+    );
+  });
+  
+  console.log('='.repeat(nameWidth + descWidth + statusWidth + resultWidth + 10));
+  
+  // Summary statistics
+  const totalTests = testResults.length;
+  const skippedTests = testResults.filter(r => r.status === 'SKIPPED').length;
+  const successfulTests = testResults.filter(r => r.success === true).length;
+  const failedTests = testResults.filter(r => r.success === false).length;
+  
+  console.log(`\nTotal Tests: ${totalTests}`);
+  console.log(`Successful: ${successfulTests}`);
+  console.log(`Failed: ${failedTests}`);
+  console.log(`Skipped: ${skippedTests}`);
 }
 
 // Run the tests
