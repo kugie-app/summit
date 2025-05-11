@@ -162,7 +162,7 @@ Follow these steps to get the Summit application running locally.
 
 5.  **Run the development server:**
     ```bash
-    pnpm dev
+    pnpm run dev
     ```
 
 6.  **Open your browser:**
