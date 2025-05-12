@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     nodeMiddleware: true,
   },
+  output: "standalone"
 };
 
 export default nextConfig;

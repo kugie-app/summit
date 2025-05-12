@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  summit:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile  # optional if named 'Dockerfile'
+      args:
+        - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-"your-public-url.com"}
+        - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-"your-nextauth-secret"}
+        - NEXAUTH_URL=${NEXAUTH_URL:-"http://localhost:3000"}
+        - CLIENT_AUTH_SECRET=${CLIENT_AUTH_SECRET:-"client-auth-secret"}
+        - DATABASE_URL=${DATABASE_URL:-postgresql://someuser:somepass@test.summitfinance.app/summit?sslmode=require}
+        - RESEND_API_KEY=${RESEND_API_KEY:-"your-resend-api-key"}
+        - SEND_FROM_EMAIL=${SEND_FROM_EMAIL:-"mail@your-domain.com"}
+        - RESEND_FROM_NAME=${RESEND_FROM_NAME:-"your-company"}
+        - XENDIT_SECRET_KEY=${XENDIT_SECRET_KEY:-"your-xendit-secret-key"}
+        - XENDIT_CALLBACK_VERIFICATION_TOKEN=${XENDIT_CALLBACK_VERIFICATION_TOKEN:-"your-xendit-verification-token"}
+        - CRON_API_KEY=${CRON_API_KEY:-"your-secure-cron-pai-key"}
+        - MINIO_ENDPOINT=${MINIO_ENDPOINT:-localhost}
+        - MINIO_PORT=${MINIO_PORT:-9000}
+        - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+        - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+        - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+        - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-summit}
+        - NEXT_TELEMETRY_DISABLED$=${NEXT_TELEMETRY_DISABLED:-1}
+        - NEXT_PUBLIC_DISABLE_SIGNUP=${NEXT_PUBLIC_DISABLE_SIGNUP:-1}
+    ports:
+      - "3000:3000"
+    image: geraldkugie/summit:1.0.0
+    environment:
+      - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-"your-public-url.com"}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-"your-nextauth-secret"}
+      - NEXAUTH_URL=${NEXAUTH_URL:-"http://localhost:3000"}
+      - CLIENT_AUTH_SECRET=${CLIENT_AUTH_SECRET:-"client-auth-secret"}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://someuser:somepass@test.summitfinance.app/summit?sslmode=require}
+      - RESEND_API_KEY=${RESEND_API_KEY:-"your-resend-api-key"}
+      - SEND_FROM_EMAIL=${SEND_FROM_EMAIL:-"mail@your-domain.com"}
+      - RESEND_FROM_NAME=${RESEND_FROM_NAME:-"your-company"}
+      - XENDIT_SECRET_KEY=${XENDIT_SECRET_KEY:-"your-xendit-secret-key"}
+      - XENDIT_CALLBACK_VERIFICATION_TOKEN=${XENDIT_CALLBACK_VERIFICATION_TOKEN:-"your-xendit-verification-token"}
+      - CRON_API_KEY=${CRON_API_KEY:-"your-secure-cron-pai-key"}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-localhost}
+      - MINIO_PORT=${MINIO_PORT:-9000}
+      - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-summit}
+      - NEXT_TELEMETRY_DISABLED$=${NEXT_TELEMETRY_DISABLED:-1}
+      - NEXT_PUBLIC_DISABLE_SIGNUP=${NEXT_PUBLIC_DISABLE_SIGNUP:-1}
