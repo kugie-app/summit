@@ -10,6 +10,7 @@
     <img src="https://img.shields.io/github/actions/workflow/status/kugie-app/summit/main-build.yml"/>
     <img src="https://img.shields.io/github/license/kugie-app/summit"/>
     <img src="https://img.shields.io/github/stars/kugie-app/summit"/>
+    <img src="https://img.shields.io/docker/pulls/geraldkugie/summit"/>
 </p>
 
 <p align="center">
@@ -221,11 +222,11 @@ This project uses Drizzle ORM with PostgreSQL.
 2.  **Set your `DATABASE_URL` in the `.env` file.**
 3.  **Apply migrations (development):**
     ```bash
-    pnpm db:push
+    pnpm run push
     ```
 4.  **Generate new migrations (when schema changes):**
     ```bash
-    pnpm db:generate
+    pnpm run generate
     ```
     Then apply the generated migration script to your database.
 ## Docker Images
