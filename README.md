@@ -238,7 +238,7 @@ docker run -p 3000:3000 -e <ENV_KEY>=<ENV_VALUE> geraldKugie/summit:1.0.0
 ```
 
 Notes:
-- On local builds, its simpler to run it from local directly without using docker, since you don't have to pass env vars one by one by using `-e <ENV_KEY>=<ENV_VALUE>`
+- On local builds, its simpler to run it from local directly without using docker, since you don't have to pass env vars one by one by using `-e <ENV_KEY>=<ENV_VALUE>`, or if you still want to containerize the app, use the `docker compose up` command for easier variable injection. 
 - The image have been tested to deploy on railway, with all the envs provided, it will work perfectly. 
 - Other methods such as implementing a specific config file for envs (e.g loki-config.yaml for loki) or passing a `.env` file are not implemented yet, but **will be implemented in the future.** 
 
