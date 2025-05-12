@@ -156,13 +156,13 @@ Follow these steps to get the Summit application running locally.
 4.  **Set up the database:**
     Make sure your PostgreSQL server is running and the connection string in your `.env` file is correct. Then, run the database migrations:
     ```bash
-    pnpm db:push
+    pnpm run generate && pnpm run push
     ```
-    *Note: `db:push` is suitable for development. For production, use `drizzle-kit generate` and apply migrations manually or via a migration tool.*
+    *Note: `generate` and `push` are suitable for development. For production, use `drizzle-kit generate` and apply migrations manually or via a migration tool.*
 
 5.  **Run the development server:**
     ```bash
-    pnpm dev
+    pnpm run dev
     ```
 
 6.  **Open your browser:**

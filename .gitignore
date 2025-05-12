@@ -43,3 +43,4 @@ build/
 
 # Cache
 .cache/
+tsconfig.tsbuildinfo
