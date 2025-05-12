@@ -1,6 +1,7 @@
 version: '3.8'
 services:
   summit:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile  # optional if named 'Dockerfile'
@@ -26,7 +27,7 @@ services:
         - NEXT_PUBLIC_DISABLE_SIGNUP=${NEXT_PUBLIC_DISABLE_SIGNUP:-1}
     ports:
       - "3000:3000"
-    image: geraldkugie/test-summit:latest
+    image: geraldkugie/summit:1.0.0
     environment:
       - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-"your-public-url.com"}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-"your-nextauth-secret"}
