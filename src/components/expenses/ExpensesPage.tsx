@@ -70,6 +70,7 @@ export default function ExpensesPage() {
       const data = await response.json();
       setExpenses(data.data || []);
       setTotalPages(data.meta?.totalPages || 1);
+      console.log(data);
     } catch (error) {
       console.error("Error fetching expenses:", error);
       toast.error("Failed to load expenses");
