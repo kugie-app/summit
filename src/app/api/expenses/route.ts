@@ -131,6 +131,8 @@ export async function GET(request: NextRequest) {
       ...result.expense,
       category: result.category && result.category.id ? result.category : null,
     }));
+
+    console.log(formattedExpenses);
     
     return NextResponse.json({
       data: formattedExpenses,
@@ -162,6 +164,7 @@ export async function POST(request: NextRequest) {
     
     // Validate and parse the request body
     const bodyValidation = expenseSchema.safeParse(body);
+    console.log(bodyValidation);
     
     if (!bodyValidation.success) {
       return NextResponse.json(
@@ -209,8 +212,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if vendor exists and belongs to the company if vendorId is provided
+    let existingVendor = null;
     if (vendorId) {
-      const existingVendor = await db
+      existingVendor = await db
         .select()
         .from(vendors)
         .where(
@@ -237,7 +241,7 @@ export async function POST(request: NextRequest) {
         companyId,
         categoryId: categoryId || null,
         vendorId: vendorId || null,
-        vendor: vendorId ? null : vendor, // Only save vendor name if vendorId is not provided
+        vendor: existingVendor ? existingVendor[0].name : vendor, // Only save vendor name if vendorId is not provided
         description: description || null,
         amount: amount.toString(),
         currency,
