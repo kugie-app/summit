@@ -41,11 +41,13 @@ export default function ExpensesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
   
-  // Fetch expenses on component mount and when filters change
+  // Fetch expenses on component mount and when filters or pagination changes
   useEffect(() => {
     fetchExpenses();
-  }, [currentPage, selectedCategoryId, selectedStatus]);
+  }, [currentPage, selectedCategoryId, selectedStatus, pageSize]);
   
   useEffect(() => {
     fetchCategories();
@@ -54,7 +56,7 @@ export default function ExpensesPage() {
   const fetchExpenses = async () => {
     setIsLoading(true);
     try {
-      let url = `/api/expenses?page=${currentPage}&limit=10`;
+      let url = `/api/expenses?page=${currentPage}&limit=${pageSize}`;
       
       if (selectedCategoryId) {
         url += `&categoryId=${selectedCategoryId}`;
@@ -69,7 +71,8 @@ export default function ExpensesPage() {
       
       const data = await response.json();
       setExpenses(data.data || []);
-      setTotalPages(data.meta?.totalPages || 1);
+      setTotalPages(data.meta?.totalPages || data.totalPages || 1);
+      setTotalItems(data.total || 0);
     } catch (error) {
       console.error("Error fetching expenses:", error);
       toast.error("Failed to load expenses");
@@ -154,6 +157,12 @@ export default function ExpensesPage() {
     }
   };
   
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPageSize = parseInt(e.target.value);
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+  
   return (
     <div className="container mx-auto py-8">
       <Card>
@@ -209,6 +218,23 @@ export default function ExpensesPage() {
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="page-size" className="block text-sm mb-1">
+                Items per page
+              </label>
+              <select
+                id="page-size"
+                className="border rounded p-2"
+                value={pageSize}
+                onChange={handlePageSizeChange}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
               </select>
             </div>
           </div>
@@ -318,8 +344,12 @@ export default function ExpensesPage() {
                 </Table>
               </div>
               
-              {totalPages > 1 && (
-                <div className="flex justify-center mt-6 space-x-2">
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {expenses.length} of {totalItems} items
+                </div>
+                
+                <div className="flex justify-center space-x-2">
                   <Button
                     variant="outline"
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -328,17 +358,17 @@ export default function ExpensesPage() {
                     Previous
                   </Button>
                   <span className="flex items-center px-4">
-                    Page {currentPage} of {totalPages}
+                    Page {currentPage} of {totalPages || 1}
                   </span>
                   <Button
                     variant="outline"
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === totalPages || totalPages === 0}
                   >
                     Next
                   </Button>
                 </div>
-              )}
+              </div>
             </>
           )}
         </CardContent>
