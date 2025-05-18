@@ -211,8 +211,9 @@ export async function POST(request: NextRequest) {
       }
       
       // Check if vendor exists and belongs to the company if vendorId is provided
+      let existingVendor = null;
       if (vendorId) {
-        const existingVendor = await db
+        existingVendor = await db
           .select()
           .from(vendors)
           .where(
@@ -239,7 +240,7 @@ export async function POST(request: NextRequest) {
           companyId,
           categoryId: categoryId || null,
           vendorId: vendorId || null,
-          vendor: vendorId ? null : vendor, // Only save vendor name if vendorId is not provided
+          vendor: existingVendor ? existingVendor[0].name : vendor,
           description: description || null,
           amount: amount.toString(),
           currency,

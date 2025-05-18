@@ -106,8 +106,6 @@ export default function CompanySettings() {
         if (!response.ok) throw new Error('Failed to fetch company data');
         
         const company = await response.json();
-        console.log('Fetched company data:', company);
-        console.log('Default currency from API:', company.defaultCurrency);
         
         // Parse address into components or set empty strings
         const addressParts = parseAddress(company.address || '');
@@ -127,7 +125,6 @@ export default function CompanySettings() {
           bankAccount: company.bankAccount || '',
           defaultCurrency: company.defaultCurrency || 'USD',
         });
-        console.log('Form reset with defaultCurrency:', company.defaultCurrency || 'USD');
 
         if (company.logoUrl) {
           setExistingLogoUrl(company.logoUrl);
