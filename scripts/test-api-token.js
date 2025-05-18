@@ -32,8 +32,11 @@ const endpoints = [
   { method: 'GET', path: '/api/clients', name: 'List Clients' },
   { method: 'GET', path: '/api/vendors', name: 'List Vendors' },
   { method: 'GET', path: '/api/income-categories', name: 'List Income Categories' },
+  { method: 'GET', path: '/api/expense-categories', name: 'List Expense Categories' },
   { method: 'GET', path: '/api/invoices', name: 'List Invoices' },
   { method: 'GET', path: '/api/quotes', name: 'List Quotes' },
+  { method: 'GET', path: '/api/expenses', name: 'List Expenses' },
+  { method: 'GET', path: '/api/income', name: 'List Income' },
 ];
 
 // Filter endpoints if a specific one was requested
@@ -45,11 +48,12 @@ if (specificEndpoint) {
   if (filteredEndpoints.length === 0) {
     console.error(`Error: No endpoint matched "${specificEndpoint}"`);
     console.log('Available endpoints:');
-    endpoints.forEach(e => console.log(`- ${e.path}`));
+    endpoints.forEach(e => console.log(`- ${e.path.split('/').pop()}`));
     process.exit(1);
   }
   
   console.log(`Testing only ${specificEndpoint} endpoints`);
+  endpoints.splice(0, endpoints.length, ...filteredEndpoints);
 }
 
 // Headers to include in all requests

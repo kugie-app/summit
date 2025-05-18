@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/options";
 import { db } from "@/lib/db";
 import { income, incomeCategories, clients } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { withAuth } from '@/lib/auth/getAuthInfo';
 
 // Income update validation schema
 const updateIncomeSchema = z.object({
@@ -20,65 +19,94 @@ const updateIncomeSchema = z.object({
   nextDueDate: z.coerce.date().optional().nullable(),
 });
 
+// Type for DB income object
+type Income = {
+  id: number;
+  companyId: number;
+  categoryId: number | null;
+  clientId: number | null;
+  invoiceId: number | null;
+  source: string | null;
+  description: string | null;
+  amount: string;
+  currency: string;
+  incomeDate: string;
+  recurring: "none" | "daily" | "weekly" | "monthly" | "yearly";
+  nextDueDate: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  softDelete: boolean;
+}
+
+// Type for successful income detail response
+type IncomeDetailResponse = {
+  income: Income;
+  category: any | null;
+  client: any | null;
+};
+
+// Type for error responses with various structures
+type ErrorResponse = {
+  error: string | z.ZodFormattedError<any>;
+};
+
+// Type for delete response
+type DeleteResponse = {
+  message: string;
+};
+
 // GET: Fetch a specific income entry by ID
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ incomeId: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user || !session.user.companyId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    
-    const companyId = parseInt(session.user.companyId as string);
-    const { incomeId } = await params;
-    
-    if (isNaN(parseInt(incomeId))) {
-      return NextResponse.json(
-        { error: "Invalid income ID" },
-        { status: 400 }
-      );
-    }
-    
-    // Fetch the income entry with related data
-    const result = await db
-      .select({
-        income: income,
-        category: incomeCategories,
-        client: clients,
-      })
-      .from(income)
-      .leftJoin(incomeCategories, eq(income.categoryId, incomeCategories.id))
-      .leftJoin(clients, eq(income.clientId, clients.id))
-      .where(
-        and(
-          eq(income.id, parseInt(incomeId)),
-          eq(income.companyId, companyId),
-          eq(income.softDelete, false)
+  return withAuth<IncomeDetailResponse | ErrorResponse>(req, async (authInfo) => {
+    try {
+      const { companyId } = authInfo;
+      const { incomeId } = await params;
+      
+      if (isNaN(parseInt(incomeId))) {
+        return NextResponse.json(
+          { error: "Invalid income ID" },
+          { status: 400 }
+        );
+      }
+      
+      // Fetch the income entry with related data
+      const result = await db
+        .select({
+          income: income,
+          category: incomeCategories,
+          client: clients,
+        })
+        .from(income)
+        .leftJoin(incomeCategories, eq(income.categoryId, incomeCategories.id))
+        .leftJoin(clients, eq(income.clientId, clients.id))
+        .where(
+          and(
+            eq(income.id, parseInt(incomeId)),
+            eq(income.companyId, companyId),
+            eq(income.softDelete, false)
+          )
         )
-      )
-      .limit(1);
-    
-    if (result.length === 0) {
+        .limit(1);
+      
+      if (result.length === 0) {
+        return NextResponse.json(
+          { error: "Income entry not found" },
+          { status: 404 }
+        );
+      }
+      
+      return NextResponse.json(result[0]);
+    } catch (error) {
+      console.error("Error fetching income entry:", error);
       return NextResponse.json(
-        { error: "Income entry not found" },
-        { status: 404 }
+        { error: "Failed to fetch income entry" },
+        { status: 500 }
       );
     }
-    
-    return NextResponse.json(result[0]);
-  } catch (error) {
-    console.error("Error fetching income entry:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch income entry" },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // PUT: Update an income entry
@@ -86,140 +114,133 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ incomeId: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user || !session.user.companyId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    
-    const companyId = parseInt(session.user.companyId as string);
-    const { incomeId } = await params;
-    
-    if (isNaN(parseInt(incomeId))) {
-      return NextResponse.json(
-        { error: "Invalid income ID" },
-        { status: 400 }
-      );
-    }
-    
-    // Check if income entry exists
-    const existingIncome = await db
-      .select()
-      .from(income)
-      .where(
-        and(
-          eq(income.id, parseInt(incomeId)),
-          eq(income.companyId, companyId),
-          eq(income.softDelete, false)
+  return withAuth<IncomeDetailResponse | ErrorResponse>(req, async (authInfo) => {
+    try {
+      const { companyId } = authInfo;
+      const { incomeId } = await params;
+      
+      if (isNaN(parseInt(incomeId))) {
+        return NextResponse.json(
+          { error: "Invalid income ID" },
+          { status: 400 }
+        );
+      }
+      
+      // Check if income entry exists
+      const existingIncome = await db
+        .select()
+        .from(income)
+        .where(
+          and(
+            eq(income.id, parseInt(incomeId)),
+            eq(income.companyId, companyId),
+            eq(income.softDelete, false)
+          )
         )
-      )
-      .limit(1);
-    
-    if (existingIncome.length === 0) {
-      return NextResponse.json(
-        { error: "Income entry not found" },
-        { status: 404 }
-      );
-    }
-    
-    const body = await req.json();
-    
-    // Validate request body
-    const validatedData = updateIncomeSchema.safeParse(body);
-    
-    if (!validatedData.success) {
-      return NextResponse.json(
-        { error: validatedData.error.format() },
-        { status: 400 }
-      );
-    }
-    
-    const {
-      categoryId,
-      clientId,
-      invoiceId,
-      source,
-      description,
-      amount,
-      currency,
-      incomeDate,
-      recurring,
-      nextDueDate,
-    } = validatedData.data;
-    
-    // Calculate next due date for recurring income
-    let calculatedNextDueDate = null;
-    if (recurring !== "none") {
-      calculatedNextDueDate = nextDueDate || calculateNextDueDate(incomeDate, recurring);
-    }
-    
-    // Update the income entry
-    const [updatedIncome] = await db
-      .update(income)
-      .set({
-        categoryId: categoryId || null,
-        clientId: clientId || null,
-        invoiceId: invoiceId || null,
+        .limit(1);
+      
+      if (existingIncome.length === 0) {
+        return NextResponse.json(
+          { error: "Income entry not found" },
+          { status: 404 }
+        );
+      }
+      
+      const body = await req.json();
+      
+      // Validate request body
+      const validatedData = updateIncomeSchema.safeParse(body);
+      
+      if (!validatedData.success) {
+        return NextResponse.json(
+          { error: validatedData.error.format() },
+          { status: 400 }
+        );
+      }
+      
+      const {
+        categoryId,
+        clientId,
+        invoiceId,
         source,
-        description: description || null,
+        description,
         amount,
         currency,
-        incomeDate: incomeDate.toISOString().split('T')[0],
+        incomeDate,
         recurring,
-        nextDueDate: calculatedNextDueDate ? calculatedNextDueDate.toISOString().split('T')[0] : null,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(income.id, parseInt(incomeId)),
-          eq(income.companyId, companyId)
+        nextDueDate,
+      } = validatedData.data;
+      
+      // Calculate next due date for recurring income
+      let calculatedNextDueDate = null;
+      if (recurring !== "none") {
+        calculatedNextDueDate = nextDueDate || calculateNextDueDate(incomeDate, recurring);
+      }
+      
+      // Update the income entry
+      const [updatedIncome] = await db
+        .update(income)
+        .set({
+          categoryId: categoryId || null,
+          clientId: clientId || null,
+          invoiceId: invoiceId || null,
+          source,
+          description: description || null,
+          amount,
+          currency,
+          incomeDate: incomeDate.toISOString().split('T')[0],
+          recurring,
+          nextDueDate: calculatedNextDueDate ? calculatedNextDueDate.toISOString().split('T')[0] : null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(income.id, parseInt(incomeId)),
+            eq(income.companyId, companyId)
+          )
         )
-      )
-      .returning();
-    
-    // Fetch related data for response
-    let category = null;
-    if (updatedIncome.categoryId) {
-      const categoryResult = await db
-        .select()
-        .from(incomeCategories)
-        .where(eq(incomeCategories.id, updatedIncome.categoryId))
-        .limit(1);
+        .returning();
       
-      if (categoryResult.length > 0) {
-        category = categoryResult[0];
+      // Fetch related data for response
+      let category = null;
+      if (updatedIncome.categoryId) {
+        const categoryResult = await db
+          .select()
+          .from(incomeCategories)
+          .where(eq(incomeCategories.id, updatedIncome.categoryId))
+          .limit(1);
+        
+        if (categoryResult.length > 0) {
+          category = categoryResult[0];
+        }
       }
-    }
-    
-    let client = null;
-    if (updatedIncome.clientId) {
-      const clientResult = await db
-        .select()
-        .from(clients)
-        .where(eq(clients.id, updatedIncome.clientId))
-        .limit(1);
       
-      if (clientResult.length > 0) {
-        client = clientResult[0];
+      let client = null;
+      if (updatedIncome.clientId) {
+        const clientResult = await db
+          .select()
+          .from(clients)
+          .where(eq(clients.id, updatedIncome.clientId))
+          .limit(1);
+        
+        if (clientResult.length > 0) {
+          client = clientResult[0];
+        }
       }
+      
+      return NextResponse.json({
+        income: updatedIncome,
+        category,
+        client,
+      });
+    } catch (error) {
+      console.error("Error updating income entry:", error);
+      return NextResponse.json(
+        { error: "Failed to update income entry" },
+        { status: 500 }
+      );
     }
-    
-    return NextResponse.json({
-      income: updatedIncome,
-      category,
-      client,
-    });
-  } catch (error) {
-    console.error("Error updating income entry:", error);
-    return NextResponse.json(
-      { error: "Failed to update income entry" },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // DELETE: Soft-delete an income entry
@@ -227,69 +248,62 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ incomeId: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user || !session.user.companyId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    
-    const companyId = parseInt(session.user.companyId as string);
-    const { incomeId } = await params;
-    
-    if (isNaN(parseInt(incomeId))) {
-      return NextResponse.json(
-        { error: "Invalid income ID" },
-        { status: 400 }
-      );
-    }
-    
-    // Check if income entry exists
-    const existingIncome = await db
-      .select()
-      .from(income)
-      .where(
-        and(
-          eq(income.id, parseInt(incomeId)),
-          eq(income.companyId, companyId),
-          eq(income.softDelete, false)
+  return withAuth<DeleteResponse | ErrorResponse>(req, async (authInfo) => {
+    try {
+      const { companyId } = authInfo;
+      const { incomeId } = await params;
+      
+      if (isNaN(parseInt(incomeId))) {
+        return NextResponse.json(
+          { error: "Invalid income ID" },
+          { status: 400 }
+        );
+      }
+      
+      // Check if income entry exists
+      const existingIncome = await db
+        .select()
+        .from(income)
+        .where(
+          and(
+            eq(income.id, parseInt(incomeId)),
+            eq(income.companyId, companyId),
+            eq(income.softDelete, false)
+          )
         )
-      )
-      .limit(1);
-    
-    if (existingIncome.length === 0) {
+        .limit(1);
+      
+      if (existingIncome.length === 0) {
+        return NextResponse.json(
+          { error: "Income entry not found" },
+          { status: 404 }
+        );
+      }
+      
+      // Soft delete the income entry
+      await db
+        .update(income)
+        .set({
+          softDelete: true,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(income.id, parseInt(incomeId)),
+            eq(income.companyId, companyId)
+          )
+        );
+      
+      return NextResponse.json({ message: "Income entry deleted successfully" });
+      
+    } catch (error) {
+      console.error("Error deleting income entry:", error);
       return NextResponse.json(
-        { error: "Income entry not found" },
-        { status: 404 }
+        { error: "Failed to delete income entry" },
+        { status: 500 }
       );
     }
-    
-    // Soft delete the income entry
-    const [deletedIncome] = await db
-      .update(income)
-      .set({
-        softDelete: true,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(income.id, parseInt(incomeId)),
-          eq(income.companyId, companyId)
-        )
-      )
-      .returning();
-    
-    return NextResponse.json(deletedIncome);
-  } catch (error) {
-    console.error("Error deleting income entry:", error);
-    return NextResponse.json(
-      { error: "Failed to delete income entry" },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // Helper function to calculate next due date based on recurring type

@@ -33,8 +33,11 @@ const createdResources = {
   clientId: null,
   vendorId: null,
   incomeCategoryId: null,
+  expenseCategoryId: null,
   invoiceId: null,
   quoteId: null,
+  expenseId: null,
+  incomeId: null,
 };
 
 // Define test operations
@@ -69,6 +72,18 @@ const tests = [
     method: 'GET',
     path: '/api/quotes',
     description: 'List all quotes',
+  },
+  {
+    name: 'list-expenses',
+    method: 'GET',
+    path: '/api/expenses',
+    description: 'List all expenses',
+  },
+  {
+    name: 'list-income',
+    method: 'GET',
+    path: '/api/income',
+    description: 'List all income',
   },
 
   // ------ POST Requests (Creating Resources) ------
@@ -190,6 +205,67 @@ const tests = [
       }
     },
   },
+  {
+    name: 'create-expense-category',
+    method: 'POST',
+    path: '/api/expense-categories',
+    description: 'Create a new expense category',
+    body: {
+      name: `Test Expense Category ${Date.now()}`,
+    },
+    postProcess: (result) => {
+      if (result.success && result.data) {
+        createdResources.expenseCategoryId = result.data.id;
+        console.log(`Created expense category with ID: ${createdResources.expenseCategoryId}`);
+      }
+    },
+  },
+  {
+    name: 'create-expense',
+    method: 'POST',
+    path: '/api/expenses',
+    description: 'Create a new expense',
+    skipIf: () => !createdResources.expenseCategoryId,
+    body: () => ({
+      categoryId: createdResources.expenseCategoryId,
+      vendor: `Test Vendor ${Date.now()}`,
+      description: 'Test expense created via API token',
+      amount: '150.75',
+      currency: 'USD',
+      expenseDate: new Date().toISOString().split('T')[0],
+      status: 'pending',
+      recurring: 'none',
+    }),
+    postProcess: (result) => {
+      if (result.success && result.data) {
+        createdResources.expenseId = result.data.id;
+        console.log(`Created expense with ID: ${createdResources.expenseId}`);
+      }
+    },
+  },
+  {
+    name: 'create-income',
+    method: 'POST',
+    path: '/api/income',
+    description: 'Create a new income entry',
+    skipIf: () => !createdResources.incomeCategoryId || !createdResources.clientId,
+    body: () => ({
+      categoryId: createdResources.incomeCategoryId,
+      clientId: createdResources.clientId,
+      source: 'Service Payment',
+      description: 'Test income created via API token',
+      amount: '500.00',
+      currency: 'USD',
+      incomeDate: new Date().toISOString().split('T')[0],
+      recurring: 'none',
+    }),
+    postProcess: (result) => {
+      if (result.success && result.data) {
+        createdResources.incomeId = result.data.id;
+        console.log(`Created income with ID: ${createdResources.incomeId}`);
+      }
+    },
+  },
 
   // ------ GET Detail Requests (Getting Single Resources) ------
   {
@@ -226,6 +302,20 @@ const tests = [
     description: 'Get quote details',
     getPath: () => `/api/quotes/${createdResources.quoteId}`,
     skipIf: () => !createdResources.quoteId,
+  },
+  {
+    name: 'get-expense-detail',
+    method: 'GET',
+    description: 'Get expense details',
+    getPath: () => `/api/expenses/${createdResources.expenseId}`,
+    skipIf: () => !createdResources.expenseId,
+  },
+  {
+    name: 'get-income-detail',
+    method: 'GET',
+    description: 'Get income details',
+    getPath: () => `/api/income/${createdResources.incomeId}`,
+    skipIf: () => !createdResources.incomeId,
   },
 
   // ------ PUT Requests (Updating Resources) ------
@@ -320,6 +410,50 @@ const tests = [
       ]
     }),
   },
+  {
+    name: 'update-expense',
+    method: 'PUT',
+    description: 'Update expense',
+    getPath: () => `/api/expenses/${createdResources.expenseId}`,
+    skipIf: () => !createdResources.expenseId,
+    body: () => ({
+      categoryId: createdResources.expenseCategoryId,
+      vendor: `Updated Vendor ${Date.now()}`,
+      description: 'Updated test expense via API token',
+      amount: '200.50',
+      currency: 'USD',
+      expenseDate: new Date().toISOString().split('T')[0],
+      status: 'approved',
+      recurring: 'none',
+    }),
+  },
+  {
+    name: 'update-expense-status',
+    method: 'PUT',
+    description: 'Update expense status',
+    getPath: () => `/api/expenses/${createdResources.expenseId}/status`,
+    skipIf: () => !createdResources.expenseId,
+    body: {
+      status: 'rejected',
+    },
+  },
+  {
+    name: 'update-income',
+    method: 'PUT',
+    description: 'Update income',
+    getPath: () => `/api/income/${createdResources.incomeId}`,
+    skipIf: () => !createdResources.incomeId,
+    body: () => ({
+      categoryId: createdResources.incomeCategoryId,
+      clientId: createdResources.clientId,
+      source: 'Updated Service Payment',
+      description: 'Updated test income via API token',
+      amount: '750.00',
+      currency: 'USD',
+      incomeDate: new Date().toISOString().split('T')[0],
+      recurring: 'none',
+    }),
+  },
 
   // ------ DELETE Requests (Removing Resources) ------
   {
@@ -335,6 +469,20 @@ const tests = [
     description: 'Delete quote',
     getPath: () => `/api/quotes/${createdResources.quoteId}`,
     skipIf: () => !createdResources.quoteId,
+  },
+  {
+    name: 'delete-expense',
+    method: 'DELETE',
+    description: 'Delete expense',
+    getPath: () => `/api/expenses/${createdResources.expenseId}`,
+    skipIf: () => !createdResources.expenseId,
+  },
+  {
+    name: 'delete-income',
+    method: 'DELETE',
+    description: 'Delete income',
+    getPath: () => `/api/income/${createdResources.incomeId}`,
+    skipIf: () => !createdResources.incomeId,
   },
   {
     name: 'delete-client',
@@ -356,6 +504,13 @@ const tests = [
     description: 'Delete income category',
     getPath: () => `/api/income-categories/${createdResources.incomeCategoryId}`,
     skipIf: () => !createdResources.incomeCategoryId,
+  },
+  {
+    name: 'delete-expense-category',
+    method: 'DELETE',
+    description: 'Delete expense category',
+    getPath: () => `/api/expense-categories/${createdResources.expenseCategoryId}`,
+    skipIf: () => !createdResources.expenseCategoryId,
   },
 ];
 
