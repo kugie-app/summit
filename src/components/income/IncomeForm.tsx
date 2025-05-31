@@ -30,7 +30,8 @@ type Invoice = {
   id: number;
   invoiceNumber: string;
   clientId: number;
-  totalAmount: string;
+  total: string;
+  currency: string;
 };
 
 type Company = {
@@ -126,13 +127,20 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
   // Watch for changes in the invoice selection to auto-fill amount
   useEffect(() => {
     if (invoiceIdValue) {
-      const selectedInvoice = invoices.find((invoice) => invoice.id === invoiceIdValue);
+      // Convert invoiceIdValue to number to match invoice.id type
+      const selectedInvoice = invoices.find((invoice) => invoice.id === Number(invoiceIdValue));
       if (selectedInvoice) {
-        setValue("amount", selectedInvoice.totalAmount);
+        setValue("amount", selectedInvoice.total);
         setValue("source", `Invoice #${selectedInvoice.invoiceNumber}`);
+        // Use invoice's currency if available, otherwise use company's default currency
+        if (selectedInvoice.currency) {
+          setValue("currency", selectedInvoice.currency);
+        } else if (company?.defaultCurrency) {
+          setValue("currency", company.defaultCurrency);
+        }
       }
     }
-  }, [invoiceIdValue, invoices]);
+  }, [invoiceIdValue, invoices, company?.defaultCurrency, setValue]);
   
   const fetchCategories = async () => {
     try {
@@ -233,9 +241,10 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
     try {
       const incomeData = {
         ...data,
-        categoryId: data.categoryId ? data.categoryId : null,
-        clientId: data.clientId ? data.clientId : null,
-        invoiceId: data.invoiceId ? data.invoiceId : null,
+        // Convert string values to numbers, or null if empty/zero
+        categoryId: data.categoryId && Number(data.categoryId) !== 0 ? Number(data.categoryId) : null,
+        clientId: data.clientId && Number(data.clientId) !== 0 ? Number(data.clientId) : null,
+        invoiceId: data.invoiceId && Number(data.invoiceId) !== 0 ? Number(data.invoiceId) : null,
         // Only include nextDueDate if recurring is not "none"
         nextDueDate: data.recurring !== "none" ? data.nextDueDate : null,
       };
@@ -318,7 +327,7 @@ export default function IncomeForm({ incomeId }: IncomeFormProps) {
                     <option value="">Select an invoice (optional)</option>
                     {invoices.map((invoice) => (
                       <option key={invoice.id} value={invoice.id}>
-                        #{invoice.invoiceNumber} - {new Intl.NumberFormat('id-ID', { style: 'currency', currency: company?.defaultCurrency || 'IDR' }).format(parseFloat(invoice.totalAmount))}
+                        #{invoice.invoiceNumber} - {new Intl.NumberFormat('id-ID', { style: 'currency', currency: company?.defaultCurrency || 'IDR' }).format(parseFloat(invoice.total))}
                       </option>
                     ))}
                   </select>
