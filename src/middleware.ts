@@ -26,6 +26,16 @@ const publicPaths = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
+  // Disable POST,PUT,DELETE for demo instance, except login route
+  const isLoginRoute = pathname.startsWith('/api/auth') && pathname !== '/api/auth/signup';
+  if (process.env.ENABLE_DEMO_MODE === '1' && request.method !== 'GET' && !isLoginRoute) {
+    // Allow only GET requests
+    return NextResponse.json(
+      { message: 'Data updates are disabled in demo mode' },
+      { status: 403 }
+    );
+  }
+
   // Block access to signup when disabled
   if (process.env.NEXT_PUBLIC_DISABLE_SIGNUP === '1') {
     // Block access to signup page
