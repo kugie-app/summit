@@ -172,7 +172,7 @@ export async function POST(
           .update(invoices)
           .set({
             status: 'sent',
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
           })
           .where(eq(invoices.id, id));
       }

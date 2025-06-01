@@ -260,8 +260,8 @@ export async function POST(request: NextRequest) {
         tax: tax.toFixed(2),
         total: total.toFixed(2),
         notes: notes || null,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
         softDelete: false,
       };
 
@@ -277,14 +277,15 @@ export async function POST(request: NextRequest) {
         const amount = quantity * unitPrice;
 
         // Create SQL statement for each item to maintain consistent approach
+        const newItemLut = new Date().toISOString();
         const newItem: typeof invoiceItems.$inferInsert = {
           invoiceId: insertResult[0].id,
           description: item.description,
           quantity: quantity.toString(),
           unitPrice: unitPrice.toString(),
           amount: amount.toString(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: newItemLut,
+          updatedAt: newItemLut,
         };
         
         const itemResult = await db.insert(invoiceItems).values(newItem).returning();

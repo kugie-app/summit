@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
         phone: validatedData.phone || null,
         website: validatedData.website || null,
         taxNumber: validatedData.taxNumber || null,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       })
       .where(eq(companies.id, companyId))
       .returning();

@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     await db
       .update(clientUsers)
       .set({
-        lastLoginAt: new Date(),
+        lastLoginAt: new Date().toISOString(),
       })
       .where(eq(clientUsers.id, clientUser.id));
 

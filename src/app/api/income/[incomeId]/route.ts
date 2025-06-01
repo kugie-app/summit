@@ -191,7 +191,7 @@ export async function PUT(
           incomeDate: incomeDate.toISOString().split('T')[0],
           recurring,
           nextDueDate: calculatedNextDueDate ? calculatedNextDueDate.toISOString().split('T')[0] : null,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(
@@ -285,7 +285,7 @@ export async function DELETE(
         .update(income)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

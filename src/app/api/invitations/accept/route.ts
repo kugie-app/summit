@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         .update(companyInvitations)
         .set({
           status: 'expired',
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(companyInvitations.id, invitation.id));
       
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
             role: invitation.role,
             companyId: invitation.companyId,
             softDelete: false,
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
           })
           .where(eq(users.id, existingUser[0].id))
           .returning({ id: users.id });
@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Create a new user
+      const newUserLut = new Date().toISOString();
       const [newUser] = await db
         .insert(users)
         .values({
@@ -117,8 +118,8 @@ export async function POST(request: NextRequest) {
           password: hashedPassword,
           role: invitation.role,
           companyId: invitation.companyId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: newUserLut,
+          updatedAt: newUserLut,
         })
         .returning({ id: users.id });
       
@@ -126,12 +127,13 @@ export async function POST(request: NextRequest) {
     }
     
     // Update invitation status to accepted
+    const updateInvitationLut = new Date().toISOString();
     await db
       .update(companyInvitations)
       .set({
         status: 'accepted',
-        updatedAt: new Date(),
-        usedAt: new Date(),
+        updatedAt: updateInvitationLut,
+        usedAt: updateInvitationLut,
       })
       .where(eq(companyInvitations.id, invitation.id));
     

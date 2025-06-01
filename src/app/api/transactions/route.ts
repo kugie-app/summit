@@ -255,8 +255,8 @@ export async function POST(request: NextRequest) {
           relatedExpenseId: relatedExpenseId || null,
           relatedIncomeId: relatedIncomeId || null,
           reconciled: !!reconciled,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           softDelete: false,
         })
         .returning();
@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
         .update(accounts)
         .set({
           currentBalance: newBalance.toString(),
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(accounts.id, accountId))
         .returning();

@@ -134,6 +134,7 @@ export async function PUT(
       }
 
       // Update client
+      const updateClientLut = new Date().toISOString();
       const [updatedClient] = await db
         .update(clients)
         .set({
@@ -142,7 +143,7 @@ export async function PUT(
           phone: validatedData.phone || null,
           address: validatedData.address || null,
           paymentTerms: validatedData.paymentTerms,
-          updatedAt: new Date(),
+          updatedAt: updateClientLut,
         })
         .where(
           and(
@@ -205,7 +206,7 @@ export async function DELETE(
         .update(clients)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

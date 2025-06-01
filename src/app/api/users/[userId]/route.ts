@@ -42,7 +42,7 @@ export async function DELETE(
       .update(users)
       .set({
         softDelete: true,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       })
       .where(
         and(

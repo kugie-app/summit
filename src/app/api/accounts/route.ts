@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
     const companyId = parseInt(session.user.companyId);
     
     // Create new account
+    const newAccountLut = new Date().toISOString();
     const [newAccount] = await db
       .insert(accounts)
       .values({
@@ -122,8 +123,8 @@ export async function POST(request: NextRequest) {
         accountNumber: accountNumber || null,
         initialBalance: initialBalance.toString(),
         currentBalance: initialBalance.toString(), // Initially set to the same as initialBalance
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: newAccountLut,
+        updatedAt: newAccountLut,
         softDelete: false,
       })
       .returning();

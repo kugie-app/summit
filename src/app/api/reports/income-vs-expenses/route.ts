@@ -5,6 +5,7 @@ import { income, expenses } from '@/lib/db/schema';
 import { sql, and, eq, gte, lte } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { castDecimalSql, dateTruncSql} from '@/lib/db/util/formatter';
 
 // GET /api/reports/income-vs-expenses
 export async function GET(request: NextRequest) {
@@ -32,8 +33,8 @@ export async function GET(request: NextRequest) {
     // Query to get monthly income using Drizzle's query builder
     const monthlyIncomeResult = await db
       .select({
-        month: sql`date_trunc('month', ${income.incomeDate})`.as('month'),
-        total: sql`COALESCE(SUM(CAST(${income.amount} AS NUMERIC)), 0)`.as('total'),
+        month: dateTruncSql(expenses.expenseDate).as('month'),
+        total: sql`COALESCE(SUM(${castDecimalSql(expenses.amount)}), 0)`.as('total'),
       })
       .from(income)
       .where(
@@ -50,8 +51,8 @@ export async function GET(request: NextRequest) {
     // Query to get monthly expenses using Drizzle's query builder
     const monthlyExpensesResult = await db
       .select({
-        month: sql`date_trunc('month', ${expenses.expenseDate})`.as('month'),
-        total: sql`COALESCE(SUM(CAST(${expenses.amount} AS NUMERIC)), 0)`.as('total'),
+        month: dateTruncSql(expenses.expenseDate).as('month'),
+        total: sql`COALESCE(SUM(${castDecimalSql(expenses.amount)})), 0)`.as('total'),
       })
       .from(expenses)
       .where(

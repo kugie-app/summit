@@ -247,7 +247,7 @@ export async function PUT(
           status,
           recurring,
           nextDueDate: nextDueDate ? format(nextDueDate, 'yyyy-MM-dd') : null,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(
@@ -354,7 +354,7 @@ export async function DELETE(
         .update(expenses)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

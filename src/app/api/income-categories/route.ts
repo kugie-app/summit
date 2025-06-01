@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
       }
       
       // Create the new category
-      const now = new Date();
+      const now = new Date().toISOString();
       const [newCategory] = await db
         .insert(incomeCategories)
         .values({

@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
           paymentProcessorReference: payload.data.id,
           status: 'completed',
           notes: `Paid via Xendit (${payload.data.payment_method})`,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           softDelete: false,
         })
         .returning();
@@ -114,8 +114,8 @@ export async function POST(request: NextRequest) {
         .update(invoices)
         .set({
           status: 'paid',
-          paidAt: paidAtDate,
-          updatedAt: new Date(),
+          paidAt: paidAtDate.toISOString(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(invoices.id, invoice.id));
       
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
             transactionDate: formattedPaymentDate,
             relatedInvoiceId: invoice.id,
             reconciled: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             softDelete: false,
           })
           .returning();
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
           .update(accounts)
           .set({
             currentBalance: newBalance.toString(),
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
           })
           .where(eq(accounts.id, account.id));
       }

@@ -59,7 +59,7 @@ export async function DELETE(
       .update(companyInvitations)
       .set({
         status: 'cancelled',
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       })
       .where(
         and(

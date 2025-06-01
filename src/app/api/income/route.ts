@@ -114,7 +114,6 @@ export async function POST(req: NextRequest) {
     try {
       const { companyId } = authInfo;
       const body = await req.json();
-      
       // Validate request body
       const validatedData = incomeSchema.safeParse(body);
       
@@ -145,7 +144,7 @@ export async function POST(req: NextRequest) {
       }
       
       // Create new income entry
-      const now = new Date();
+      const now = new Date().toISOString();
       const [newIncome] = await db
         .insert(income)
         .values({

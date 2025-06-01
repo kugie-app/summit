@@ -234,6 +234,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Insert the new expense
+      const newExpenseLut = new Date().toISOString();
       const [newExpense] = await db
         .insert(expenses)
         .values({
@@ -249,8 +250,8 @@ export async function POST(request: NextRequest) {
           status,
           recurring,
           nextDueDate: nextDueDate ? format(nextDueDate, 'yyyy-MM-dd') : null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: newExpenseLut,
+          updatedAt: newExpenseLut,
           softDelete: false,
         })
         .returning();

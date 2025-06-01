@@ -91,8 +91,8 @@ export async function POST(
           notes: quote[0].notes,
           currency: company?.defaultCurrency || 'IDR',
           recurring: 'none',
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           softDelete: false,
         })
         .returning();
@@ -104,8 +104,8 @@ export async function POST(
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         amount: item.amount,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }));
       
       await tx.insert(invoiceItems).values(invoiceItemsData);
@@ -114,7 +114,7 @@ export async function POST(
       await tx.update(quotes)
         .set({
           convertedToInvoiceId: newInvoice.id,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(quotes.id, Number(quoteId)));
       

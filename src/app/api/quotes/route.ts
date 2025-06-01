@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
       const total = subtotal + taxAmount;
       
       // Insert quote using a simple query approach
-      const now = new Date();
+      const now = new Date().toISOString();
       
       // Create raw SQL statement to insert quote
       const newQuote: typeof quotes.$inferInsert = {

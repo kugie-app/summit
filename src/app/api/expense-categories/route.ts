@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Create new category
-      const now = new Date();
+      const now = new Date().toISOString();
       const [category] = await db
         .insert(expenseCategories)
         .values({

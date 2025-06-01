@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { expenses, income, payments, invoices } from '@/lib/db/schema';
 import { and, eq, gte, lte, sql, sum } from 'drizzle-orm';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { castDecimalSql, formatMonthSql } from '@/lib/db/util/formatter';
 
 // Get income for a specific date range grouped by month
 export const getMonthlyIncome = async (
@@ -11,8 +12,8 @@ export const getMonthlyIncome = async (
 ) => {
   const query = db
     .select({
-      month: sql<string>`TO_CHAR(${income.incomeDate}, 'YYYY-MM')`,
-      total: sum(sql<number>`CAST(${income.amount} AS DECIMAL)`),
+      month: formatMonthSql(income.incomeDate),
+      total: sum(castDecimalSql(income.amount)),
     })
     .from(income)
     .where(
@@ -23,8 +24,8 @@ export const getMonthlyIncome = async (
         eq(income.softDelete, false)
       )
     )
-    .groupBy(sql`TO_CHAR(${income.incomeDate}, 'YYYY-MM')`)
-    .orderBy(sql`TO_CHAR(${income.incomeDate}, 'YYYY-MM')`);
+    .groupBy(formatMonthSql(income.incomeDate))
+    .orderBy(formatMonthSql(income.incomeDate));
 
   return query;
 };
@@ -37,8 +38,8 @@ export const getMonthlyExpenses = async (
 ) => {
   const query = db
     .select({
-      month: sql<string>`TO_CHAR(${expenses.expenseDate}, 'YYYY-MM')`,
-      total: sum(sql<number>`CAST(${expenses.amount} AS DECIMAL)`),
+      month: formatMonthSql(expenses.expenseDate),
+      total: sum(castDecimalSql(expenses.amount)),
     })
     .from(expenses)
     .where(
@@ -49,8 +50,8 @@ export const getMonthlyExpenses = async (
         eq(expenses.softDelete, false)
       )
     )
-    .groupBy(sql`TO_CHAR(${expenses.expenseDate}, 'YYYY-MM')`)
-    .orderBy(sql`TO_CHAR(${expenses.expenseDate}, 'YYYY-MM')`);
+    .groupBy(formatMonthSql(expenses.expenseDate))
+    .orderBy(formatMonthSql(expenses.expenseDate));
 
   return query;
 };
@@ -65,7 +66,7 @@ export const getExpensesByCategory = async (
     .select({
       categoryId: expenses.categoryId,
       categoryName: sql<string>`COALESCE((SELECT name FROM expense_categories WHERE id = ${expenses.categoryId}), 'Uncategorized')`,
-      total: sum(sql<number>`CAST(${expenses.amount} AS DECIMAL)`),
+      total: sum(castDecimalSql(expenses.amount)),
     })
     .from(expenses)
     .where(
@@ -92,7 +93,7 @@ export const getIncomeByCategory = async (
     .select({
       categoryId: income.categoryId,
       categoryName: sql<string>`COALESCE((SELECT name FROM income_categories WHERE id = ${income.categoryId}), 'Uncategorized')`,
-      total: sum(sql<number>`CAST(${income.amount} AS DECIMAL)`),
+      total: sum(castDecimalSql(income.amount)),
     })
     .from(income)
     .where(
@@ -118,7 +119,7 @@ export const getProfitLossSummary = async (
   // Get total income
   const [incomeResult] = await db
     .select({
-      total: sum(sql<number>`CAST(${income.amount} AS DECIMAL)`),
+      total: sum(castDecimalSql(income.amount)),
     })
     .from(income)
     .where(
@@ -129,11 +130,10 @@ export const getProfitLossSummary = async (
         eq(income.softDelete, false)
       )
     );
-
   // Get total expenses
   const [expensesResult] = await db
     .select({
-      total: sum(sql<number>`CAST(${expenses.amount} AS DECIMAL)`),
+      total: sum(castDecimalSql(expenses.amount)),
     })
     .from(expenses)
     .where(

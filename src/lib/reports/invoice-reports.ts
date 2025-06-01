@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { invoices, clients, payments } from '@/lib/db/schema';
 import { and, eq, gte, lte, sql, count, sum, isNull, not, lt } from 'drizzle-orm';
 import { format, subDays, parseISO, subMonths } from 'date-fns';
+import { formatMonthSql, castDecimalSql} from '@/lib/db/util/formatter'
 
 // Get invoice summary for a company
 export const getInvoiceSummary = async (
@@ -29,7 +30,7 @@ export const getInvoiceSummary = async (
   const [totalResult] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(baseConditions);
@@ -38,7 +39,7 @@ export const getInvoiceSummary = async (
   const [paidResult] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -52,7 +53,7 @@ export const getInvoiceSummary = async (
   const [overdueResult] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -66,7 +67,7 @@ export const getInvoiceSummary = async (
   const [unpaidResult] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -80,7 +81,7 @@ export const getInvoiceSummary = async (
   const [draftResult] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -112,7 +113,7 @@ export const getInvoiceSummary = async (
     const [prevPaidResult] = await db
       .select({
         count: count(),
-        total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+        total: sum(castDecimalSql(invoices.total)),
       })
       .from(invoices)
       .where(
@@ -129,7 +130,7 @@ export const getInvoiceSummary = async (
     const [prevOverdueResult] = await db
       .select({
         count: count(),
-        total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+        total: sum(castDecimalSql(invoices.total)),
       })
       .from(invoices)
       .where(
@@ -255,7 +256,7 @@ export const getAgingReceivables = async (
   const [current] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -269,7 +270,7 @@ export const getAgingReceivables = async (
   const [thirtyToSixty] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -284,7 +285,7 @@ export const getAgingReceivables = async (
   const [sixtyToNinety] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -299,7 +300,7 @@ export const getAgingReceivables = async (
   const [overNinety] = await db
     .select({
       count: count(),
-      total: sum(sql<number>`CAST(${invoices.total} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(invoices)
     .where(
@@ -345,7 +346,7 @@ export const getRevenueByClient = async (
     .select({
       clientId: clients.id,
       clientName: clients.name,
-      total: sum(sql<number>`CAST(${payments.amount} AS DECIMAL)`),
+      total: sum(castDecimalSql(invoices.total)),
     })
     .from(payments)
     .leftJoin(invoices, eq(payments.invoiceId, invoices.id))

@@ -76,7 +76,7 @@ export async function PUT(
         .update(expenses)
         .set({
           status,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

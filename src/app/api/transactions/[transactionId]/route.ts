@@ -235,7 +235,7 @@ export async function PUT(
           relatedExpenseId: relatedExpenseId || null,
           relatedIncomeId: relatedIncomeId || null,
           reconciled: !!reconciled,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(transactions.id, parseInt(transactionId)))
         .returning();
@@ -245,7 +245,7 @@ export async function PUT(
         .update(accounts)
         .set({
           currentBalance: newBalance.toString(),
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(accounts.id, accountId))
         .returning();
@@ -339,7 +339,7 @@ export async function DELETE(
         .update(transactions)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(transactions.id, parseInt(transactionId)));
       
@@ -348,7 +348,7 @@ export async function DELETE(
         .update(accounts)
         .set({
           currentBalance: currentBalance.toString(),
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(accounts.id, account.id));
     });

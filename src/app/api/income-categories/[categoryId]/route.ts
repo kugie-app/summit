@@ -148,7 +148,7 @@ export async function PUT(
         .update(incomeCategories)
         .set({
           name,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(
@@ -214,7 +214,7 @@ export async function DELETE(
         .update(incomeCategories)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

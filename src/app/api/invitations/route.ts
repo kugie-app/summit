@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
     expires.setHours(expires.getHours() + 48);
     
     // Create invitation record
+    const invitationLut = new Date().toISOString();
     const [invitation] = await db
       .insert(companyInvitations)
       .values({
@@ -133,8 +134,8 @@ export async function POST(request: NextRequest) {
         token,
         status: 'pending',
         expires,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: invitationLut,
+        updatedAt: invitationLut,
       })
       .returning();
     

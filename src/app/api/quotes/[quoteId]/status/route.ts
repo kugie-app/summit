@@ -46,12 +46,12 @@ export async function PATCH(
     // Determine if we need to set acceptedAt date
     const updates: any = {
       status: validatedData.status,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     };
 
     // If status is changing to accepted, set acceptedAt
     if (validatedData.status === 'accepted' && existingQuote[0].status !== 'accepted') {
-      updates.acceptedAt = new Date();
+      updates.acceptedAt = new Date().toISOString();
     }
 
     // Update the quote status

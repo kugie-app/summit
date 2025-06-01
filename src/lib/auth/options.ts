@@ -41,7 +41,7 @@ export const authOptions: NextAuthOptions = {
         const [user] = await db
           .select()
           .from(users)
-          .where(and(eq(users.email, email), eq(users.softDelete, false)));
+          .where(and(eq(users.email, email)));
 
         if (!user || !user.password) {
           return null;

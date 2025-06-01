@@ -143,7 +143,7 @@ export async function POST(
         .set({
           xenditInvoiceId: xenditInvoice.id,
           xenditInvoiceUrl: xenditInvoice.invoiceUrl,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(invoices.id, invoiceId))
         .returning();

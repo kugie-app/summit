@@ -76,8 +76,8 @@ export async function POST(request: NextRequest) {
       .update(invoices)
       .set({
         status: 'paid',
-        paidAt: new Date(payload.paid_at || payload.updated),
-        updatedAt: new Date(),
+        paidAt: new Date(payload.paid_at || payload.updated).toISOString(),
+        updatedAt: new Date().toISOString(),
       })
       .where(eq(invoices.id, invoice.id));
     

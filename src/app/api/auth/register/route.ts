@@ -44,22 +44,25 @@ export async function POST(request: Request) {
 
     // Hash the password
     const hashedPassword = await hash(validatedData.password, 10);
-
     // Create the company
+    const companyLut = new Date().toISOString()
     const [newCompany] = await db
       .insert(companies)
       .values({
         name: validatedData.companyName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: companyLut,
+        updatedAt: companyLut,
       })
       .returning({ id: companies.id });
-
+    
+      
+    
     if (!newCompany) {
       throw new Error('Failed to create company');
     }
 
     // Create the user with admin role
+    const userLut = new Date().toISOString()
     const [newUser] = await db
       .insert(users)
       .values({
@@ -68,8 +71,8 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: 'admin',
         companyId: newCompany.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: userLut,
+        updatedAt: userLut,
       })
       .returning({ id: users.id });
 

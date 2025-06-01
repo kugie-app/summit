@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create client
+      const newClientLut = new Date().toISOString();
       const [newClient] = await db
         .insert(clients)
         .values({
@@ -121,8 +122,8 @@ export async function POST(request: NextRequest) {
           phone: validatedData.phone || null,
           address: validatedData.address || null,
           paymentTerms: validatedData.paymentTerms,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: newClientLut,
+          updatedAt: newClientLut
         })
         .returning();
 

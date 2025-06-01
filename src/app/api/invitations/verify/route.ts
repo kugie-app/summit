@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         .update(companyInvitations)
         .set({
           status: 'expired',
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(companyInvitations.id, invitation.id));
 

@@ -142,7 +142,7 @@ export async function PUT(
       }
       
       // Update the category
-      const now = new Date();
+      const now = new Date().toISOString();
       const [updatedCategory] = await db
         .update(expenseCategories)
         .set({
@@ -234,7 +234,7 @@ export async function DELETE(
         .update(expenseCategories)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

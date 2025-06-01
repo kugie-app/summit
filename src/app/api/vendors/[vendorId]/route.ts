@@ -116,7 +116,7 @@ export async function PUT(
           address: data.address || null,
           website: data.website || null,
           notes: data.notes || null,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(and(
           eq(vendors.id, Number(vendorId)),
@@ -175,7 +175,7 @@ export async function DELETE(
       await db.update(vendors)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(and(
           eq(vendors.id, Number(vendorId)),

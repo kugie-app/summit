@@ -131,6 +131,7 @@ export async function PUT(
     const { name, type, currency, accountNumber } = validation.data;
     
     // Update account (don't update initialBalance or currentBalance through this endpoint)
+    const updatedAccountLut = new Date().toISOString();
     const [updatedAccount] = await db
       .update(accounts)
       .set({
@@ -138,7 +139,7 @@ export async function PUT(
         type,
         currency,
         accountNumber: accountNumber || null,
-        updatedAt: new Date(),
+        updatedAt: updatedAccountLut,
       })
       .where(
         and(
@@ -225,7 +226,7 @@ export async function DELETE(
       .update(accounts)
       .set({
         softDelete: true,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       })
       .where(
         and(

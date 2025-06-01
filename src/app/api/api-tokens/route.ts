@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         tokenPrefix: prefix,
         tokenHash,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       })
       .returning({
         id: apiTokens.id,

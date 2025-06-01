@@ -166,10 +166,10 @@ export async function PUT(
             tax: tax.toString(),
             total: total.toString(),
             notes: validatedData.notes || null,
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
             // Set acceptedAt if status is changed to accepted
             acceptedAt: validatedData.status === 'accepted' && existingQuote[0].status !== 'accepted'
-              ? new Date()
+              ? new Date().toISOString()
               : existingQuote[0].acceptedAt,
           })
           .where(
@@ -196,8 +196,8 @@ export async function PUT(
             quantity: item.quantity.toString(),
             unitPrice: item.unitPrice.toString(),
             amount: amount.toString(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           };
         });
 
@@ -260,7 +260,7 @@ export async function DELETE(
         .update(quotes)
         .set({
           softDelete: true,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

@@ -5,6 +5,7 @@ import { expenses, expenseCategories } from '@/lib/db/schema';
 import { and, eq, sql, gte, lte, sum, desc, asc } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { subMonths, startOfMonth, endOfMonth, format } from 'date-fns';
+import { castDecimalSql, dateTruncSql} from '@/lib/db/util/formatter';
 
 // GET /api/reports/expense-breakdown
 export async function GET(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     const expensesByCategoryPromises = categoriesResult.map(async (category) => {
       const result = await db
         .select({
-          totalAmount: sql`COALESCE(SUM(CAST(${expenses.amount} AS NUMERIC)), 0)`.as('total_amount'),
+          totalAmount: sql`COALESCE(SUM(${castDecimalSql(expenses.amount)}), 0)`.as('total_amount'),
         })
         .from(expenses)
         .where(
@@ -74,8 +75,8 @@ export async function GET(request: NextRequest) {
     // for PostgreSQL-specific functions
     const expensesByMonthResult = await db
       .select({
-        month: sql`date_trunc('month', ${expenses.expenseDate})`.as('month'),
-        totalAmount: sql`COALESCE(SUM(CAST(${expenses.amount} AS NUMERIC)), 0)`.as('total_amount'),
+        month: dateTruncSql(expenses.expenseDate).as('month'),
+        totalAmount: sql`COALESCE(SUM(${castDecimalSql(expenses.amount)}), 0)`.as('total_amount'),
       })
       .from(expenses)
       .where(

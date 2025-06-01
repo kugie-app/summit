@@ -7,6 +7,7 @@ import { format, subMonths, parseISO, startOfMonth, endOfMonth } from 'date-fns'
 import { db } from '@/lib/db';
 import { expenses, income } from '@/lib/db/schema';
 import { and, eq, gte, lte, sql, sum } from 'drizzle-orm';
+import { castDecimalSql, formatMonthSql } from '@/lib/db/util/formatter';
 
 // Query parameter validation schema
 const querySchema = z.object({
@@ -63,8 +64,8 @@ async function getMonthlyBreakdown(companyId: number, startDate: string, endDate
   // Get monthly income
   const monthlyIncome = await db
     .select({
-      month: sql<string>`TO_CHAR(${income.incomeDate}, 'YYYY-MM')`,
-      total: sum(sql<number>`CAST(${income.amount} AS DECIMAL)`),
+      month: formatMonthSql(income.incomeDate),
+      total: sum(castDecimalSql(income.amount)),
     })
     .from(income)
     .where(
@@ -75,14 +76,14 @@ async function getMonthlyBreakdown(companyId: number, startDate: string, endDate
         eq(income.softDelete, false)
       )
     )
-    .groupBy(sql`TO_CHAR(${income.incomeDate}, 'YYYY-MM')`)
-    .orderBy(sql`TO_CHAR(${income.incomeDate}, 'YYYY-MM')`);
+    .groupBy(formatMonthSql(income.incomeDate))
+    .orderBy(formatMonthSql(income.incomeDate));
   
   // Get monthly expenses
   const monthlyExpenses = await db
     .select({
-      month: sql<string>`TO_CHAR(${expenses.expenseDate}, 'YYYY-MM')`,
-      total: sum(sql<number>`CAST(${expenses.amount} AS DECIMAL)`),
+      month: formatMonthSql(expenses.expenseDate),
+      total: sum(castDecimalSql(expenses.amount)),
     })
     .from(expenses)
     .where(
@@ -93,8 +94,8 @@ async function getMonthlyBreakdown(companyId: number, startDate: string, endDate
         eq(expenses.softDelete, false)
       )
     )
-    .groupBy(sql`TO_CHAR(${expenses.expenseDate}, 'YYYY-MM')`)
-    .orderBy(sql`TO_CHAR(${expenses.expenseDate}, 'YYYY-MM')`);
+    .groupBy(formatMonthSql(expenses.expenseDate))
+    .orderBy(formatMonthSql(expenses.expenseDate));
 
   // Transform the data to get an array of months from startDate to endDate
   const months = [];

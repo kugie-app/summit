@@ -5,6 +5,7 @@ import { invoices, invoiceStatusEnum } from '@/lib/db/schema';
 import { and, eq, sql, gte, lte } from 'drizzle-orm';
 import { authOptions } from '@/lib/auth/options';
 import { subMonths, startOfMonth, endOfMonth, format } from 'date-fns';
+import { castDecimalSql, dateTruncSql, formatMonthSql} from '@/lib/db/util/formatter';
 
 // GET /api/reports/revenue-overview
 export async function GET(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     // Get monthly revenue from paid invoices using Drizzle query builder
     const monthlyRevenueResult = await db
       .select({
-        month: sql<string>`TO_CHAR(DATE_TRUNC('month', ${invoices.paidAt}), 'YYYY-MM')`,
+        month: formatMonthSql(dateTruncSql(invoices.paidAt)).as('month'),
         revenue: sql<number>`SUM(${invoices.total})`
       })
       .from(invoices)
@@ -41,8 +42,8 @@ export async function GET(request: NextRequest) {
           lte(invoices.paidAt, sql`${endOfMonth(endDate)}::timestamp`)
         )
       )
-      .groupBy(sql`DATE_TRUNC('month', ${invoices.paidAt})`)
-      .orderBy(sql`DATE_TRUNC('month', ${invoices.paidAt})`);
+      .groupBy(dateTruncSql(invoices.paidAt))
+      .orderBy(dateTruncSql(invoices.paidAt));
     
     // Get count of invoices by status
     const invoiceStatusCountResult = await db

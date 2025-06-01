@@ -1,10 +1,15 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { drizzle as drizzlePostgres } from 'drizzle-orm/postgres-js';
+import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
 import postgres from "postgres";
+import Database from "better-sqlite3";
 
-// Check if the DATABASE_URL is defined in the environment
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not defined');
-}
+type PostgresDB = ReturnType<typeof drizzlePostgres>;
+type SqliteDB = ReturnType<typeof drizzleSqlite>;
 
-// Create a Drizzle client with the Neon HTTP adapter
-export const db = drizzle(postgres(process.env.DATABASE_URL))
+const databaseUrl = process.env.DATABASE_URL;
+const db =
+  databaseUrl?.startsWith('postgres') && databaseUrl
+    ? drizzlePostgres(postgres(databaseUrl))
+    : drizzleSqlite(new Database('./db/seed.sqlite'));
+
+export { db };

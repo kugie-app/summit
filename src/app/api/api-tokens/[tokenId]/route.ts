@@ -41,7 +41,7 @@ export async function DELETE(
 
     const [revokedToken] = await db
       .update(apiTokens)
-      .set({ revokedAt: new Date() })
+      .set({ revokedAt: new Date().toISOString() })
       .where(
         and(
           eq(apiTokens.id, id),

@@ -178,7 +178,7 @@ export async function POST(
         .update(quotes)
         .set({
           status: 'sent',
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(quotes.id, id));
     }
