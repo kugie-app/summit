@@ -12,9 +12,9 @@ export type IncomeCategoryFormValues = z.infer<typeof incomeCategorySchema>;
 // Income Schema
 export const incomeSchema = z.object({
   id: z.number().optional(), // Optional for creation, required for updates
-  categoryId: z.number().optional(),
-  clientId: z.number().optional(),
-  invoiceId: z.number().optional(),
+  categoryId: z.number().nullable().optional(),
+  clientId: z.number().nullable().optional(),
+  invoiceId: z.number().nullable().optional(),
   source: z.string().min(1, 'Source is required'),
   description: z.string().optional(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Amount must be a valid currency value'),
