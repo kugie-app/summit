@@ -141,7 +141,7 @@ export async function PUT(
       const total = subtotal + tax;
 
       // Start a transaction for updating invoice and items
-      return await db.transaction(async (tx) => {
+      const transactionResult =  await db.transaction(async (tx) => {
         // Update invoice
         const [updatedInvoice] = await tx
           .update(invoices)
@@ -196,8 +196,10 @@ export async function PUT(
           .values(itemsToInsert)
           .returning();
 
-        return NextResponse.json({ ...updatedInvoice, items });
+        return { ...updatedInvoice, items }
       });
+
+      return NextResponse.json(transactionResult);
     } catch (error) {
       console.error('Error updating invoice:', error);
 
