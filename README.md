@@ -244,6 +244,13 @@ Notes:
 - Other methods such as implementing a specific config file for envs (e.g loki-config.yaml for loki) or passing a `.env` file are not implemented yet, but **will be implemented in the future.** 
 
 
+## Demo Instance
+A demo instance is available for public use at https://demo.summitfinance.app, you can use these login credentials and login as an internal user in the demo instance.
+```
+username: summit@demo.com
+password: demopass
+```
+please do note that we have limited the demo instance to be view only, i.e any data changes or updates isn't possible in the demo instance, but you can still navigate around summit to get a feel of how summit works. 
 
 
 ## 🤝 Contributing
