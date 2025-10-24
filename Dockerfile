@@ -93,6 +93,20 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy database migrations and config for drizzle-kit migrate
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib/db/migrations ./src/lib/db/migrations
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Copy drizzle-kit and related dependencies for migrations
+# Note: Copying from deps ensures we have all required dependencies
+COPY --from=deps /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
+COPY --from=deps /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=deps /app/node_modules/dotenv ./node_modules/dotenv
+COPY --from=deps /app/node_modules/@neondatabase ./node_modules/@neondatabase
+COPY --from=deps /app/node_modules/postgres ./node_modules/postgres
+COPY --from=deps /app/node_modules/pg ./node_modules/pg
+
 USER nextjs
 
 EXPOSE 3000

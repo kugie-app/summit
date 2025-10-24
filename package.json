@@ -9,6 +9,7 @@
     "lint": "next lint",
     "generate": "drizzle-kit generate",
     "push": "drizzle-kit push",
+    "migrate": "drizzle-kit migrate",
     "test": "jest",
     "test:watch": "jest --watch"
   },
