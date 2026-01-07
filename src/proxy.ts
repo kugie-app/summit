@@ -23,7 +23,7 @@ const publicPaths = [
   '/api/webhooks/xendit/payment',
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Block access to signup when disabled
@@ -186,6 +186,5 @@ export const config = {
      * - public files
      */
     '/((?!_next/static|_next/image|favicon.ico|images|public).*)',
-  ],
-  runtime: 'nodejs',
+  ]
 }; 
