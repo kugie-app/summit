@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -38,9 +39,15 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { resolvedTheme } = useTheme();
-  const isDarkMode = resolvedTheme === 'dark';
+  const [mounted, setMounted] = useState(false);
 
-  const logoSrc = isDarkMode ? '/logomark_dark.png' : '/logomark.png';
+  // Ensure component is mounted before showing theme-dependent content
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDarkMode = resolvedTheme === 'dark';
+  const logoSrc = mounted && isDarkMode ? '/images/logomark_dark.png' : '/images/logomark.png';
 
   const groupedNavItems = navItems.reduce<Record<string, typeof navItems>>((acc, item) => {
     const group = item.group || 'General';
