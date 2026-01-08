@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: kugieapp/summit
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://user:password@localhost:5432/summit_build"
+      NEXTAUTH_SECRET: "build-time-secret-key-for-github-actions-only"
+      NEXTAUTH_URL: "http://localhost:3000"
+      CLIENT_AUTH_SECRET: "build-time-client-secret"
+      RESEND_API_KEY: "re_123456789"
+      SEND_FROM_EMAIL: "no-reply@example.com"
+      RESEND_FROM_NAME: "Summit"
+      XENDIT_SECRET_KEY: "xnd_development_fake"
+      XENDIT_CALLBACK_VERIFICATION_TOKEN: "fake-token"
+      CRON_API_KEY: "fake-cron-key"
+      MINIO_ENDPOINT: "localhost"
+      MINIO_PORT: "9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET_NAME: "summit"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build check
+        run: pnpm run build
+
+  build-docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DATABASE_URL=postgresql://user:password@localhost:5432/summit_build
+            NEXTAUTH_SECRET=build-time-secret-key-for-github-actions-only
+            NEXTAUTH_URL=http://localhost:3000
+            CLIENT_AUTH_SECRET=build-time-client-secret
+            RESEND_API_KEY=re_123456789
+            SEND_FROM_EMAIL=no-reply@example.com
+            RESEND_FROM_NAME=Summit
+            XENDIT_SECRET_KEY=xnd_development_fake
+            XENDIT_CALLBACK_VERIFICATION_TOKEN=fake-token
+            CRON_API_KEY=fake-cron-key
+            MINIO_ENDPOINT=localhost
+            MINIO_PORT=9000
+            MINIO_USE_SSL=false
+            MINIO_ACCESS_KEY=minioadmin
+            MINIO_SECRET_KEY=minioadmin
+            MINIO_BUCKET_NAME=summit
+            NEXT_PUBLIC_URL=http://localhost:3000
+            NEXT_TELEMETRY_DISABLED=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  create-release:
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Generate changelog
+          echo "## What's Changed" > CHANGELOG.md
+          
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "- Initial release" >> CHANGELOG.md
+          else
+            git log --pretty=format:"- %s" ${PREV_TAG}..HEAD >> CHANGELOG.md
+          fi
+          
+          echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Docker Image" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "Pull the image:" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "docker pull kugieapp/summit:${GITHUB_REF_NAME#v}" >> CHANGELOG.md
+          echo "docker pull kugieapp/summit:latest" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Railway Deployment" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "This release is optimized for deployment on Railway with automatic database migrations." >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Environment Variables" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "See the [README](README.md) for required environment variables." >> CHANGELOG.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

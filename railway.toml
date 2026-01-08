@@ -1,0 +1,27 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+preDeployCommand = "pnpm run generate && pnpm run push"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[env]
+NODE_ENV = "production"
+NEXTAUTH_URL = "${RAILWAY_STATIC_URL}"
+
+# Database configuration will be auto-injected by Railway PostgreSQL plugin
+# DATABASE_URL = "${DATABASE_URL}" # Automatically set by Railway PostgreSQL
+
+[services.web]
+name = "summit-web"
+source = "."
+
+[services.web.variables]
+PORT = "3000"
+
+# Railway PostgreSQL plugin
+[[services.web.plugins]]
+name = "postgresql"
