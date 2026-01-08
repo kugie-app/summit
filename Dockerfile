@@ -77,6 +77,10 @@ RUN \
 
 # Production image, copy all the files and run next
 FROM base AS runner
+
+# Install pnpm and tsx for pre-deploy commands
+RUN corepack enable pnpm && npm install -g tsx
+
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -104,6 +108,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/src ./src
 COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
 # Copy all node_modules to run drizzle-kit commands
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copy pnpm lock file for pnpm commands
+COPY --from=builder --chown=nextjs:nodejs /app/pnpm-lock.yaml ./pnpm-lock.yaml
+
+# Ensure .env file can be created if needed by drizzle-kit
+RUN mkdir -p /app && chown -R nextjs:nodejs /app
 
 USER nextjs
 
