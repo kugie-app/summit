@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/client';
+import { sql } from 'drizzle-orm';
+import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
     // Basic health check
-    const health = {
+    const health: any = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Optional: Check database connectivity
     try {
       // Simple query to verify database connection
-      await db.execute('SELECT 1');
+      await db.execute(sql`SELECT 1`);
       health.database = 'connected';
     } catch (dbError) {
       health.database = 'disconnected';
