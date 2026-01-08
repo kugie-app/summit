@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/github/actions/workflow/status/kugie-app/summit/main-build.yml"/>
     <img src="https://img.shields.io/github/license/kugie-app/summit"/>
     <img src="https://img.shields.io/github/stars/kugie-app/summit"/>
-    <img src="https://img.shields.io/docker/pulls/geraldkugie/summit"/>
+    <img src="https://img.shields.io/docker/pulls/kugieapp/summit"/>
 </p>
 
 <p align="center">
@@ -233,9 +233,9 @@ This project uses Drizzle ORM with PostgreSQL.
 
 Last Stable Version: 1.0.0
 ```
-docker pull geraldKugie/summit:1.0.0
+docker pull kugieapp/summit:1.0.0
 
-docker run -p 3000:3000 -e <ENV_KEY>=<ENV_VALUE> geraldKugie/summit:1.0.0
+docker run -p 3000:3000 -e <ENV_KEY>=<ENV_VALUE> kugieapp/summit:1.0.0
 ```
 
 Notes:
