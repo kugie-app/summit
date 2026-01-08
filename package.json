@@ -49,7 +49,7 @@
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3",
-    "react-email": "^4.0.7",
+    "react-email": "^5.2.1",
     "react-hook-form": "^7.55.0",
     "recharts": "^2.15.2",
     "resend": "^4.2.0",
