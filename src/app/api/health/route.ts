@@ -1,30 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from 'drizzle-orm';
-import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    // Basic health check
-    const health: any = {
+    const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
     };
 
-    // Optional: Check database connectivity
-    try {
-      // Simple query to verify database connection
-      await db.execute(sql`SELECT 1`);
-      health.database = 'connected';
-    } catch (dbError) {
-      health.database = 'disconnected';
-      health.status = 'unhealthy';
-    }
-
-    return NextResponse.json(health, { 
-      status: health.status === 'healthy' ? 200 : 503 
-    });
+    return NextResponse.json(health, { status: 200 });
   } catch (error) {
     return NextResponse.json(
       {
