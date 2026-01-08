@@ -2,7 +2,7 @@
 builder = "dockerfile"
 
 [deploy]
-preDeployCommand = "pnpm run generate && pnpm run push"
+preDeployCommand = "pnpm run push --force"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
