@@ -78,8 +78,8 @@ RUN \
 # Production image, copy all the files and run next
 FROM base AS runner
 
-# Install pnpm and tsx for pre-deploy commands
-RUN corepack enable pnpm && npm install -g tsx
+# Install pnpm, postgresql-client (for pg_isready in entrypoint), and tsx
+RUN apk add --no-cache postgresql-client && corepack enable pnpm && npm install -g tsx
 
 WORKDIR /app
 
@@ -115,6 +115,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/pnpm-lock.yaml ./pnpm-lock.yaml
 # Ensure .env file can be created if needed by drizzle-kit
 RUN mkdir -p /app && chown -R nextjs:nodejs /app
 
+# Copy entrypoint script
+COPY --chown=nextjs:nodejs docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -124,4 +128,6 @@ ENV PORT=3000
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
 ENV HOSTNAME="0.0.0.0"
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "server.js"]

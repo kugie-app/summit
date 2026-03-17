@@ -619,3 +619,141 @@ export const apiTokensRelations = relations(apiTokens, ({ one }) => ({
     references: [companies.id],
   }),
 }));
+
+// ─── Forecasting & Budget Tracking ───────────────────────────────────────────
+
+// Enums
+export const forecastStreamTypeEnum = pgEnum('forecast_stream_type', ['revenue', 'expense']);
+export const forecastScopeTypeEnum = pgEnum('forecast_scope_type', ['global', 'stream', 'item']);
+
+// Forecasts – top-level planning container
+export const forecasts = pgTable('forecasts', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  startDate: varchar('start_date', { length: 7 }).notNull(), // YYYY-MM
+  endDate: varchar('end_date', { length: 7 }).notNull(),     // YYYY-MM
+  currency: varchar('currency', { length: 10 }).default('IDR').notNull(),
+  softDelete: boolean('soft_delete').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Forecast Streams – revenue or expense groupings
+export const forecastStreams = pgTable('forecast_streams', {
+  id: serial('id').primaryKey(),
+  forecastId: integer('forecast_id').notNull().references(() => forecasts.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  type: forecastStreamTypeEnum('type').notNull(),
+  order: integer('order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Forecast Items – individual line items within a stream
+export const forecastItems = pgTable('forecast_items', {
+  id: serial('id').primaryKey(),
+  forecastId: integer('forecast_id').notNull().references(() => forecasts.id),
+  streamId: integer('stream_id').notNull().references(() => forecastStreams.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  order: integer('order').default(0).notNull(),
+  incomeCategoryId: integer('income_category_id').references(() => incomeCategories.id),
+  expenseCategoryId: integer('expense_category_id').references(() => expenseCategories.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Forecast Period Values – monthly amounts per item
+export const forecastPeriodValues = pgTable('forecast_period_values', {
+  id: serial('id').primaryKey(),
+  forecastId: integer('forecast_id').notNull().references(() => forecasts.id),
+  itemId: integer('item_id').notNull().references(() => forecastItems.id),
+  period: varchar('period', { length: 7 }).notNull(), // YYYY-MM
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull().default('0'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  itemPeriodIdx: uniqueIndex('forecast_period_values_item_period_idx').on(table.itemId, table.period),
+}));
+
+// Forecast Variables – named constants usable in descriptions/assumptions
+export const forecastVariables = pgTable('forecast_variables', {
+  id: serial('id').primaryKey(),
+  forecastId: integer('forecast_id').notNull().references(() => forecasts.id),
+  key: varchar('key', { length: 100 }).notNull(),
+  value: decimal('value', { precision: 15, scale: 4 }).notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Forecast Growth Rules – YoY growth rates per scope
+export const forecastGrowthRules = pgTable('forecast_growth_rules', {
+  id: serial('id').primaryKey(),
+  forecastId: integer('forecast_id').notNull().references(() => forecasts.id),
+  scopeType: forecastScopeTypeEnum('scope_type').notNull(),
+  scopeId: integer('scope_id'),   // null when scopeType = 'global'
+  year: integer('year').notNull(),
+  growthRate: decimal('growth_rate', { precision: 6, scale: 4 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Forecast Seasonality Weights – monthly distribution weights
+export const forecastSeasonalityWeights = pgTable('forecast_seasonality_weights', {
+  id: serial('id').primaryKey(),
+  forecastId: integer('forecast_id').notNull().references(() => forecasts.id),
+  scopeType: forecastScopeTypeEnum('scope_type').notNull(),
+  scopeId: integer('scope_id'),   // null when scopeType = 'global'
+  month: integer('month').notNull(), // 1–12
+  weight: decimal('weight', { precision: 6, scale: 4 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  uniqueWeight: uniqueIndex('forecast_seasonality_weights_unique_idx').on(
+    table.forecastId, table.scopeType, table.scopeId, table.month
+  ),
+}));
+
+// Relations
+export const forecastsRelations = relations(forecasts, ({ one, many }) => ({
+  company: one(companies, { fields: [forecasts.companyId], references: [companies.id] }),
+  streams: many(forecastStreams),
+  items: many(forecastItems),
+  periodValues: many(forecastPeriodValues),
+  variables: many(forecastVariables),
+  growthRules: many(forecastGrowthRules),
+  seasonalityWeights: many(forecastSeasonalityWeights),
+}));
+
+export const forecastStreamsRelations = relations(forecastStreams, ({ one, many }) => ({
+  forecast: one(forecasts, { fields: [forecastStreams.forecastId], references: [forecasts.id] }),
+  items: many(forecastItems),
+}));
+
+export const forecastItemsRelations = relations(forecastItems, ({ one, many }) => ({
+  forecast: one(forecasts, { fields: [forecastItems.forecastId], references: [forecasts.id] }),
+  stream: one(forecastStreams, { fields: [forecastItems.streamId], references: [forecastStreams.id] }),
+  incomeCategory: one(incomeCategories, { fields: [forecastItems.incomeCategoryId], references: [incomeCategories.id] }),
+  expenseCategory: one(expenseCategories, { fields: [forecastItems.expenseCategoryId], references: [expenseCategories.id] }),
+  periodValues: many(forecastPeriodValues),
+}));
+
+export const forecastPeriodValuesRelations = relations(forecastPeriodValues, ({ one }) => ({
+  forecast: one(forecasts, { fields: [forecastPeriodValues.forecastId], references: [forecasts.id] }),
+  item: one(forecastItems, { fields: [forecastPeriodValues.itemId], references: [forecastItems.id] }),
+}));
+
+export const forecastVariablesRelations = relations(forecastVariables, ({ one }) => ({
+  forecast: one(forecasts, { fields: [forecastVariables.forecastId], references: [forecasts.id] }),
+}));
+
+export const forecastGrowthRulesRelations = relations(forecastGrowthRules, ({ one }) => ({
+  forecast: one(forecasts, { fields: [forecastGrowthRules.forecastId], references: [forecasts.id] }),
+}));
+
+export const forecastSeasonalityWeightsRelations = relations(forecastSeasonalityWeights, ({ one }) => ({
+  forecast: one(forecasts, { fields: [forecastSeasonalityWeights.forecastId], references: [forecasts.id] }),
+}));

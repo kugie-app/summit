@@ -15,6 +15,7 @@ import {
   Tags,
   FolderTree,
   Store,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -33,6 +34,7 @@ const navItems = [
   { label: 'Expenses', icon: Receipt, href: '/expenses', group: 'Transactions' },
   { label: 'Recurring', icon: RefreshCw, href: '/recurring-transactions', group: 'Transactions' },
   // { label: 'Reports', icon: LineChart, href: '/reports' },
+  { label: 'Forecasts', icon: TrendingUp, href: '/forecasts', group: 'Planning' },
   { label: 'Settings', icon: Settings, href: '/settings', group: 'Settings' },
 ];
 
@@ -74,7 +76,7 @@ export function Sidebar() {
                   href={item.href}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                    pathname === item.href
+                    pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-accent'
                   )}

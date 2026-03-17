@@ -127,6 +127,13 @@
       "when": 1746957956599,
       "tag": "0017_acoustic_sumo",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1773782889755,
+      "tag": "0018_striped_machine_man",
+      "breakpoints": true
     }
   ]
 }
